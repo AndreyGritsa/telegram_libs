@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "telegram_libs"
+version = "0.1.2"
+description = "Common libraries for Telegram bots"
+authors = ["Andrey Gritsaenko gricaenko.95a@gmail.com"]
+readme = "README.md"
+packages = [{include = "telegram_libs", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pytest = "^8.3.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api" 
