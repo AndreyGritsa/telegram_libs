@@ -10,6 +10,7 @@ packages = [{include = "telegram_libs", from = "src"}]
 python = "^3.11"
 pytest = "^8.3.5"
 python-telegram-bot = "^22.1"
+pytest-asyncio = "^1.0.0"
 
 [build-system]
 requires = ["poetry-core"]
