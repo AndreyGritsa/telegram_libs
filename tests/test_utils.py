@@ -3,7 +3,7 @@ os.environ["BOTS_AMOUNT"] = "5"  # Set required environment variable
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from telegram import Update, Message, Chat
+from telegram import Update, Message
 from telegram_libs.utils import get_subscription_keyboard
 from telegram_libs.constants import BOTS_AMOUNT
 
@@ -21,7 +21,7 @@ async def test_get_subscription_keyboard_layout(mock_update):
     
     # Check that reply_text was called with correct message
     mock_update.message.reply_text.assert_called_once_with(
-        f"Buying a subscription you will get unlimited access to other {BOTS_AMOUNT} bots, to see all bots click /more"
+        f"Buying a subscription you will get unlimited access to other {int(BOTS_AMOUNT) - 1} bots, to see all bots click /more"
     )
     
     # Check keyboard layout
@@ -46,7 +46,7 @@ async def test_get_subscription_keyboard_different_language(mock_update):
     
     # Check that reply_text was called with correct message
     mock_update.message.reply_text.assert_called_once_with(
-        f"Buying a subscription you will get unlimited access to other {BOTS_AMOUNT} bots, to see all bots click /more"
+        f"Buying a subscription you will get unlimited access to other {int(BOTS_AMOUNT) - 1} bots, to see all bots click /more"
     )
     
     # Check keyboard layout remains the same
@@ -57,4 +57,26 @@ async def test_get_subscription_keyboard_different_language(mock_update):
     # Check callback data remains the same regardless of language
     assert keyboard[0][0].callback_data == "sub_1month"
     assert keyboard[0][1].callback_data == "sub_3months"
-    assert keyboard[1][0].callback_data == "sub_1year" 
+    assert keyboard[1][0].callback_data == "sub_1year"
+
+@pytest.mark.asyncio
+async def test_more_bots_list_command(mock_update):
+    from telegram_libs.utils import more_bots_list_command
+    
+    # Create a mock context
+    mock_context = MagicMock()
+    
+    # Call the function
+    await more_bots_list_command(mock_update, mock_context)
+    
+    # Check that reply_text was called with correct message and parameters
+    expected_message = """Here is the list of all bots: \n\n
+    - <a href="https://t.me/MagMediaBot">Remove Background</a>
+    - <a href="https://t.me/upscale_image_bot">Upscale Image</a>
+    - <a href="https://t.me/kudapoyti_go_bot">Recommend a place to visit</a>
+    """
+    mock_update.message.reply_text.assert_called_once_with(
+        expected_message,
+        disable_web_page_preview=True,
+        parse_mode='HTML'
+    ) 
