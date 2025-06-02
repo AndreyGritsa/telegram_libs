@@ -5,6 +5,7 @@ description = "Common libraries for Telegram bots"
 authors = ["Andrey Gritsaenko gricaenko.95a@gmail.com"]
 readme = "README.md"
 packages = [{include = "telegram_libs", from = "src"}]
+repository = "https://github.com/AndreyGritsa/telegram_libs"
 
 [tool.poetry.dependencies]
 python = "^3.11"
