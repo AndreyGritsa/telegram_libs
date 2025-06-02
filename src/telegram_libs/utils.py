@@ -7,7 +7,6 @@ from telegram_libs.constants import BOTS_AMOUNT
 from telegram_libs.translation import t
 
 
-
 async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboardMarkup:
     """Get subscription keyboard
 
@@ -19,7 +18,7 @@ async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboard
         InlineKeyboardMarkup: Inline keyboard markup
     """
     await update.message.reply_text(
-        f"Buying a subscription you will get unlimited access to other {BOTS_AMOUNT} bots, to see all bots click /more"
+        f"Buying a subscription you will get unlimited access to other {BOTS_AMOUNT - 1} bots, to see all bots click /more"
     )
     return [
         [

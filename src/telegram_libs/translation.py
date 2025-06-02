@@ -1,7 +1,14 @@
 import json
 import os
+from typing import Any
 
-def load_translations():
+
+def load_translations() -> dict:
+    """Load translations from locales directory
+
+    Returns:
+        dict: Translations dictionary
+    """
     translations = {}
     # Get the project's root directory (where the script is being run from)
     project_root = os.path.abspath(os.getcwd())
@@ -21,7 +28,7 @@ def load_translations():
 
 TRANSLATIONS = load_translations()
 
-def t(key, lang='ru', **kwargs):
+def t(key: str, lang: str = 'ru', **kwargs: Any) -> str:
     """Get translation for a key with optional formatting"""
     try:
         # Support nested keys like "buttons.start"
