@@ -3,6 +3,7 @@ from telegram import (
     InlineKeyboardMarkup,
 )
 from telegram import Update
+from telegram.ext import ContextTypes
 from telegram_libs.constants import BOTS_AMOUNT
 from telegram_libs.translation import t
 
@@ -35,3 +36,12 @@ async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboard
             ),
         ],
     ]
+    
+
+async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = """Here is the list of all bots: \n\n
+    - <a href="https://t.me/MagMediaBot">Remove Background</a>
+    - <a href="https://t.me/upscale_image_bot">Upscale Image</a>
+    - <a href="https://t.me/kudapoyti_go_bot">Recommend a place to visit</a>
+    """
+    await update.message.reply_text(message, disable_web_page_preview=True, parse_mode='HTML')
