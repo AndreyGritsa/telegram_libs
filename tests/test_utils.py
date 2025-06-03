@@ -1,5 +1,9 @@
 import os
-os.environ["BOTS_AMOUNT"] = "5"  # Set required environment variable
+
+# Set required environment variables
+os.environ["BOTS_AMOUNT"] = "5"  
+os.environ["MONGO_URI"] = "mongodb://localhost:27017"
+os.environ["SUBSCRIPTION_DB_NAME"] = "subscription_db"
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock
@@ -72,7 +76,7 @@ async def test_more_bots_list_command(mock_update):
     # Check that reply_text was called with correct message and parameters
     expected_message = """Here is the list of all bots: \n\n
     - <a href="https://t.me/MagMediaBot">Remove Background</a>
-    - <a href="https://t.me/upscale_image_bot">Upscale Image</a>
+    - <a href="https://t.me/UpscaleImageGBot">Upscale Image</a>
     - <a href="https://t.me/kudapoyti_go_bot">Recommend a place to visit</a>
     """
     mock_update.message.reply_text.assert_called_once_with(
