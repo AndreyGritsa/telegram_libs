@@ -42,6 +42,7 @@ async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_T
     message = """Here is the list of all bots: \n\n
     - <a href="https://t.me/MagMediaBot">Remove Background</a>
     - <a href="https://t.me/UpscaleImageGBot">Upscale Image</a>
+    - <a href="https://t.me/GenerateBackgroundGBot">Generate a Background</a>
     - <a href="https://t.me/kudapoyti_go_bot">Recommend a place to visit</a>
     """
     await update.message.reply_text(message, disable_web_page_preview=True, parse_mode='HTML')
