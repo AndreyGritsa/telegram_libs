@@ -1,0 +1,10 @@
+{
+  "subscription": {
+    "choose_plan": "Choose a subscription plan:",
+    "plans": {
+      "1month": "1 Month - 250 Stars",
+      "3months": "3 Months - 500 Stars",
+      "1year": "1 Year - 1600 Stars"
+    }
+  }
+}

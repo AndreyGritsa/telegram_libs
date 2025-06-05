@@ -52,4 +52,4 @@ def check_subscription_status(user_id: int) -> bool:
         return False
         
     expiration = datetime.fromisoformat(subscription["premium_expiration"])
-    return expiration > datetime.now() 
+    return expiration > datetime.now()

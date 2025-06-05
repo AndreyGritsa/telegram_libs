@@ -24,15 +24,15 @@ async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboard
     return [
         [
             InlineKeyboardButton(
-                t("subscription.plans.1month", lang), callback_data="sub_1month"
+                t("subscription.plans.1month", lang, common=True), callback_data="sub_1month"
             ),
             InlineKeyboardButton(
-                t("subscription.plans.3months", lang), callback_data="sub_3months"
+                t("subscription.plans.3months", lang, common=True), callback_data="sub_3months"
             ),
         ],
         [
             InlineKeyboardButton(
-                t("subscription.plans.1year", lang), callback_data="sub_1year"
+                t("subscription.plans.1year", lang, common=True), callback_data="sub_1year"
             ),
         ],
     ]
