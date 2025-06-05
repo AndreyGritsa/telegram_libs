@@ -1,6 +1,7 @@
 import json
 import pytest
 from telegram_libs import translation
+import os
 
 @pytest.fixture
 def temp_locales_dir(tmp_path):
@@ -83,3 +84,25 @@ def test_translation_missing_key():
 def test_translation_missing_language():
     """Test behavior when language doesn't exist"""
     assert translation.t("welcome", "fr") == "Welcome"  # Should fallback to English 
+
+def test_common_translation(monkeypatch):
+    """Test translation with the 'common' argument using real common translations."""
+    # Patch COMMON_TRANSLATIONS to use the real locales
+    from telegram_libs import translation
+    locales_dir = os.path.join(os.path.dirname(translation.__file__), 'locales')
+    with open(os.path.join(locales_dir, 'en.json'), encoding='utf-8') as f:
+        en = json.load(f)
+    with open(os.path.join(locales_dir, 'ru.json'), encoding='utf-8') as f:
+        ru = json.load(f)
+    monkeypatch.setattr(translation, 'COMMON_TRANSLATIONS', {'en': en, 'ru': ru})
+
+    # Test English
+    assert translation.t('subscription.choose_plan', 'en', common=True) == 'Choose a subscription plan:'
+    assert translation.t('subscription.plans.1month', 'en', common=True) == '1 Month - 250 Stars'
+    # Test Russian
+    assert translation.t('subscription.choose_plan', 'ru', common=True) == 'Выберите план подписки:'
+    assert translation.t('subscription.plans.3months', 'ru', common=True) == '3 месяца - 500 Stars'
+    # Test fallback to English
+    assert translation.t('subscription.choose_plan', 'fr', common=True) == 'Choose a subscription plan:'
+    # Test missing key fallback
+    assert translation.t('subscription.nonexistent', 'ru', common=True) == 'subscription.nonexistent' 

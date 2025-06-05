@@ -8,7 +8,7 @@ os.environ["SUBSCRIPTION_DB_NAME"] = "subscription_db"
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from telegram import Update, Message
-from telegram_libs.utils import get_subscription_keyboard
+from telegram_libs.utils import get_subscription_keyboard, t
 from telegram_libs.constants import BOTS_AMOUNT
 
 @pytest.fixture
@@ -34,13 +34,13 @@ async def test_get_subscription_keyboard_layout(mock_update):
     assert len(keyboard[1]) == 1  # Second row has 1 button
     
     # Check button texts and callback data
-    assert keyboard[0][0].text == "subscription.plans.1month"
+    assert keyboard[0][0].text == t("subscription.plans.1month", "en", common=True)
     assert keyboard[0][0].callback_data == "sub_1month"
     
-    assert keyboard[0][1].text == "subscription.plans.3months"
+    assert keyboard[0][1].text == t("subscription.plans.3months", "en", common=True)
     assert keyboard[0][1].callback_data == "sub_3months"
     
-    assert keyboard[1][0].text == "subscription.plans.1year"
+    assert keyboard[1][0].text == t("subscription.plans.1year", "en", common=True)
     assert keyboard[1][0].callback_data == "sub_1year"
 
 @pytest.mark.asyncio
@@ -77,6 +77,7 @@ async def test_more_bots_list_command(mock_update):
     expected_message = """Here is the list of all bots: \n\n
     - <a href="https://t.me/MagMediaBot">Remove Background</a>
     - <a href="https://t.me/UpscaleImageGBot">Upscale Image</a>
+    - <a href="https://t.me/GenerateBackgroundGBot">Generate a Background</a>
     - <a href="https://t.me/kudapoyti_go_bot">Recommend a place to visit</a>
     """
     mock_update.message.reply_text.assert_called_once_with(
