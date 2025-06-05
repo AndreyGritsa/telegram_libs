@@ -59,5 +59,5 @@ def t(key: str, lang: str = 'ru', common: bool = False, **kwargs: Any) -> str:
     except KeyError:
         # Fallback to English if translation missing
         if lang != 'en':
-            return t(key, 'en', **kwargs)
+            return t(key, 'en', common=common, **kwargs)
         return key  # Return the key itself as last resort
