@@ -79,6 +79,7 @@ async def test_more_bots_list_command(mock_update):
     - <a href="https://t.me/UpscaleImageGBot">Upscale Image</a>
     - <a href="https://t.me/GenerateBackgroundGBot">Generate a Background</a>
     - <a href="https://t.me/kudapoyti_go_bot">Recommend a place to visit</a>
+    - <a href="https://t.me/TryOnOutfitGBot">Try On Outfit</a>
     """
     mock_update.message.reply_text.assert_called_once_with(
         expected_message,
