@@ -52,7 +52,7 @@ async def test_get_subscription_keyboard_different_language(mock_update):
     
     # Check that reply_text was called with correct message
     mock_update.message.reply_text.assert_called_once_with(
-        f"Buying a subscription you will get unlimited access to other {int(BOTS_AMOUNT) - 1} bots, to see all bots click /more"
+        f"Купив подписку, вы получите неограниченный доступ к другим {int(BOTS_AMOUNT) - 1} ботам, чтобы увидеть всех ботов, нажмите /more"
     )
     
     # Check keyboard layout remains the same
