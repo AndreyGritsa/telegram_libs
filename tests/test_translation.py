@@ -98,10 +98,10 @@ def test_common_translation(monkeypatch):
 
     # Test English
     assert translation.t('subscription.choose_plan', 'en', common=True) == 'Choose a subscription plan:'
-    assert translation.t('subscription.plans.1month', 'en', common=True) == '1 Month - 250 Stars'
+    assert translation.t('subscription.plans.1month', 'en', common=True) == '1 Month - 1400 Stars'
     # Test Russian
     assert translation.t('subscription.choose_plan', 'ru', common=True) == 'Выберите план подписки:'
-    assert translation.t('subscription.plans.3months', 'ru', common=True) == '3 месяца - 500 Stars'
+    assert translation.t('subscription.plans.3months', 'ru', common=True) == '3 месяца - 3500 Stars'
     # Test fallback to English
     assert translation.t('subscription.choose_plan', 'fr', common=True) == 'Choose a subscription plan:'
     # Test missing key fallback
