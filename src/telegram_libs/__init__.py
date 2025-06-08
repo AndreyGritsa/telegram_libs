@@ -2,4 +2,4 @@
 Telegram Libs - Common libraries for Telegram bots
 """
 
-__version__ = "0.1.9"
+__version__ = "0.1.10"
