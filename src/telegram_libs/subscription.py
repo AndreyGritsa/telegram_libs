@@ -1,13 +1,9 @@
 from datetime import datetime
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
-from telegram_libs.constants import MONGO_URI, SUBSCRIPTION_DB_NAME
-
-# Create a new client and connect to the server
-client = MongoClient(MONGO_URI, server_api=ServerApi("1"))
+from telegram_libs.constants import SUBSCRIPTION_DB_NAME
+from telegram_libs.mongo import mongo_client
 
 # Define the subscription database and collection
-subscription_db = client[SUBSCRIPTION_DB_NAME]
+subscription_db = mongo_client[SUBSCRIPTION_DB_NAME]
 subscription_collection = subscription_db["subscriptions"]
 
 
