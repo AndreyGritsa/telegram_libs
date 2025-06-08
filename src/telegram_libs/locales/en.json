@@ -5,6 +5,15 @@
       "1month": "1 Month - 1400 Stars",
       "3months": "3 Months - 3500 Stars",
       "1year": "1 Year - 12000 Stars"
-    }
+    },
+    "info": "Buying a subscription you will get unlimited access to other {0} bots, to see all bots click /more"
+  },
+  "support": {
+    "message": "If you have any questions or need help, please contact our support team at @support_channel.",
+    "response": "Thank you! Our support team will contact you soon."
+  },
+  "feedback": {
+    "message": "We appreciate your feedback! Please send your suggestions or issues and we will review them as soon as possible.",
+    "response": "Thank you for your feedback!"
   }
 }

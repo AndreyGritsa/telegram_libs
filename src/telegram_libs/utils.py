@@ -24,7 +24,7 @@ async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboard
         InlineKeyboardMarkup: Inline keyboard markup
     """
     await update.message.reply_text(
-        f"Buying a subscription you will get unlimited access to other {int(BOTS_AMOUNT) - 1} bots, to see all bots click /more"
+        t("subscription.info", lang, common=True).format(int(BOTS_AMOUNT) - 1)
     )
     return [
         [
@@ -57,7 +57,7 @@ async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_T
 async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Support command handler"""
     await update.message.reply_text(
-        "If you have any questions or need help, please contact our support team at @support_channel."
+        t("support.message", update.effective_user.language_code, common=True)
     )
     context.user_data[SUPPORT_WAITING] = True
     
@@ -74,14 +74,14 @@ async def handle_support_response(update: Update, context: ContextTypes.DEFAULT_
             "bot_name": bot_name,
         }
         support_collection.insert_one(support_doc)
-        await update.message.reply_text("Thank you! Our support team will contact you soon.")
+        await update.message.reply_text(t("support.response", update.effective_user.language_code, common=True))
         context.user_data[SUPPORT_WAITING] = False
     
 
 async def feedback_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Feedback command handler"""
     await update.message.reply_text(
-        "We appreciate your feedback! Please send your suggestions or issues and we will review them as soon as possible."
+        t("feedback.message", update.effective_user.language_code, common=True)
     )
     context.user_data[FEEDBACK_WAITING] = True
  
@@ -98,7 +98,7 @@ async def handle_feedback_response(update: Update, context: ContextTypes.DEFAULT
             "bot_name": bot_name,
         }
         feedback_collection.insert_one(feedback_doc)
-        await update.message.reply_text("Thank you for your feedback!")
+        await update.message.reply_text(t("feedback.response", update.effective_user.language_code, common=True))
         context.user_data[FEEDBACK_WAITING] = False
         
         
