@@ -72,6 +72,8 @@ async def handle_support_response(update: Update, context: ContextTypes.DEFAULT_
             "username": update.effective_user.username,
             "message": update.message.text,
             "bot_name": bot_name,
+            "timestamp": update.message.date.isoformat(),
+            "resolved": False,
         }
         support_collection.insert_one(support_doc)
         await update.message.reply_text(t("support.response", update.effective_user.language_code, common=True))
@@ -96,6 +98,7 @@ async def handle_feedback_response(update: Update, context: ContextTypes.DEFAULT
             "username": update.effective_user.username,
             "feedback": update.message.text,
             "bot_name": bot_name,
+            "timestamp": update.message.date.isoformat(),
         }
         feedback_collection.insert_one(feedback_doc)
         await update.message.reply_text(t("feedback.response", update.effective_user.language_code, common=True))
