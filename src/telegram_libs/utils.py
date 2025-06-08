@@ -7,6 +7,7 @@ from telegram.ext import ContextTypes, Application, CommandHandler, MessageHandl
 from telegram_libs.constants import BOTS_AMOUNT
 from telegram_libs.translation import t
 from telegram_libs.mongo import mongo_client
+from functools import partial
 
 FEEDBACK_WAITING = "feedback_waiting"
 SUPPORT_WAITING = "support_waiting"
@@ -104,9 +105,9 @@ async def handle_feedback_response(update: Update, context: ContextTypes.DEFAULT
 def register_feedback_and_support_handlers(app: Application, bot_name: str) -> None:
     """Register feedback and support handlers for the bot"""
     app.add_handler(CommandHandler("feedback", feedback_command))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_feedback_response, pass_bot_name=bot_name))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, partial(handle_feedback_response, bot_name=bot_name)))
     app.add_handler(CommandHandler("support", support_command))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_support_response, pass_bot_name=bot_name))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, partial(handle_support_response, bot_name=bot_name)))
 
 
 def register_common_handlers(app: Application, bot_name: str) -> None:
