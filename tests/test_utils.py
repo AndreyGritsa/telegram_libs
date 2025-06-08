@@ -11,7 +11,7 @@ from telegram import Update, Message
 from telegram.ext import Application
 from telegram_libs.utils import get_subscription_keyboard, t
 from telegram_libs.constants import BOTS_AMOUNT
-from functools import partial
+from datetime import datetime
 
 @pytest.fixture
 def mock_update():
@@ -100,7 +100,7 @@ async def test_support_command(mock_update):
     await support_command(mock_update, mock_context)
     
     mock_update.message.reply_text.assert_called_once_with(
-        "If you have any questions or need help, please contact our support team at @support_channel."
+        t("support.message", mock_update.effective_user.language_code, common=True)
     )
     assert mock_context.user_data[SUPPORT_WAITING] is True
 
@@ -108,12 +108,13 @@ async def test_support_command(mock_update):
 async def test_handle_support_response(mock_update):
     """Test the handle_support_response handler."""
     from telegram_libs.utils import handle_support_response, SUPPORT_WAITING
-
+    
     mock_context = MagicMock()
     mock_context.user_data = {SUPPORT_WAITING: True}
     mock_update.effective_user.id = 123
     mock_update.effective_user.username = "testuser"
     mock_update.message.text = "This is a support message."
+    mock_update.message.date = datetime.now()
     
     mock_support_collection = MagicMock()
     # Patch the mongo_client to return our mock collection
@@ -127,9 +128,11 @@ async def test_handle_support_response(mock_update):
         "username": "testuser",
         "message": "This is a support message.",
         "bot_name": "TestBot",
+        "timestamp": mock_update.message.date.isoformat(),
+        "resolved": False,
     })
     mock_update.message.reply_text.assert_called_once_with(
-        "Thank you! Our support team will contact you soon."
+        t("support.response", mock_update.effective_user.language_code, common=True)
     )
     assert mock_context.user_data[SUPPORT_WAITING] is False
 
@@ -180,6 +183,7 @@ async def test_handle_feedback_response(mock_update):
     mock_update.effective_user.id = 456
     mock_update.effective_user.username = "feedbackuser"
     mock_update.message.text = "This is some feedback."
+    mock_update.message.date = datetime.now()
     
     mock_feedback_collection = MagicMock()
     with patch('telegram_libs.utils.mongo_client') as mock_mongo_client:
@@ -192,9 +196,10 @@ async def test_handle_feedback_response(mock_update):
         "username": "feedbackuser",
         "feedback": "This is some feedback.",
         "bot_name": "AnotherBot",
+        "timestamp": mock_update.message.date.isoformat(),
     })
     mock_update.message.reply_text.assert_called_once_with(
-        "Thank you for your feedback!"
+        t("feedback.response", mock_update.effective_user.language_code, common=True)
     )
     assert mock_context.user_data[FEEDBACK_WAITING] is False
 
