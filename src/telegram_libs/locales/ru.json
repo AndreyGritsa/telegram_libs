@@ -2,9 +2,9 @@
   "subscription": {
     "choose_plan": "Выберите план подписки:",
     "plans": {
-      "1month": "1 месяц - 250 Stars",
-      "3months": "3 месяца - 500 Stars",
-      "1year": "1 год - 1600 Stars"
+      "1month": "1 месяц - 1400 Stars",
+      "3months": "3 месяца - 3500 Stars",
+      "1year": "1 год - 12000 Stars"
     }
   }
 }
