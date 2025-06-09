@@ -1,0 +1,2 @@
+publish:
+	poetry publish --build
