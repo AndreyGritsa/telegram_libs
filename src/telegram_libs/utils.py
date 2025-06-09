@@ -1,3 +1,6 @@
+from functools import partial
+from logging import basicConfig, getLogger, INFO
+from datetime import datetime
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -7,7 +10,13 @@ from telegram.ext import ContextTypes, Application, CommandHandler, MessageHandl
 from telegram_libs.constants import BOTS_AMOUNT
 from telegram_libs.translation import t
 from telegram_libs.mongo import mongo_client
-from functools import partial
+
+
+basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=INFO
+)
+logger = getLogger(__name__)
+
 
 FEEDBACK_WAITING = "feedback_waiting"
 SUPPORT_WAITING = "support_waiting"
@@ -72,7 +81,7 @@ async def handle_support_response(update: Update, context: ContextTypes.DEFAULT_
             "username": update.effective_user.username,
             "message": update.message.text,
             "bot_name": bot_name,
-            "timestamp": update.message.date.isoformat(),
+            "timestamp": datetime.now().isoformat(),
             "resolved": False,
         }
         support_collection.insert_one(support_doc)
@@ -98,7 +107,7 @@ async def handle_feedback_response(update: Update, context: ContextTypes.DEFAULT
             "username": update.effective_user.username,
             "feedback": update.message.text,
             "bot_name": bot_name,
-            "timestamp": update.message.date.isoformat(),
+            "timestamp": datetime.now().isoformat(),
         }
         feedback_collection.insert_one(feedback_doc)
         await update.message.reply_text(t("feedback.response", update.effective_user.language_code, common=True))
