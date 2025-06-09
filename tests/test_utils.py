@@ -116,11 +116,17 @@ async def test_handle_support_response(mock_update):
     mock_update.message.text = "This is a support message."
     mock_update.message.date = datetime.now()
     
+    # Define a fixed datetime for consistent testing
+    fixed_now = datetime(2024, 1, 1, 10, 0, 0)
+
     mock_support_collection = MagicMock()
     # Patch the mongo_client to return our mock collection
-    with patch('telegram_libs.utils.mongo_client') as mock_mongo_client:
+    with patch('telegram_libs.utils.mongo_client') as mock_mongo_client, \
+         patch('telegram_libs.utils.datetime') as mock_dt: # Patch datetime
         mock_mongo_client.__getitem__.return_value.__getitem__.return_value = mock_support_collection
-        
+        mock_dt.now.return_value = fixed_now # Set fixed time for datetime.now()
+        mock_dt.isoformat.side_effect = fixed_now.isoformat # Ensure isoformat also works
+
         await handle_support_response(mock_update, mock_context, "TestBot")
     
     mock_support_collection.insert_one.assert_called_once_with({
@@ -128,7 +134,7 @@ async def test_handle_support_response(mock_update):
         "username": "testuser",
         "message": "This is a support message.",
         "bot_name": "TestBot",
-        "timestamp": mock_update.message.date.isoformat(),
+        "timestamp": fixed_now.isoformat(), # Use the fixed timestamp for assertion
         "resolved": False,
     })
     mock_update.message.reply_text.assert_called_once_with(
@@ -185,9 +191,15 @@ async def test_handle_feedback_response(mock_update):
     mock_update.message.text = "This is some feedback."
     mock_update.message.date = datetime.now()
     
+    # Define a fixed datetime for consistent testing
+    fixed_now = datetime(2024, 1, 1, 10, 0, 0)
+
     mock_feedback_collection = MagicMock()
-    with patch('telegram_libs.utils.mongo_client') as mock_mongo_client:
+    with patch('telegram_libs.utils.mongo_client') as mock_mongo_client, \
+         patch('telegram_libs.utils.datetime') as mock_dt: # Patch datetime
         mock_mongo_client.__getitem__.return_value.__getitem__.return_value = mock_feedback_collection
+        mock_dt.now.return_value = fixed_now # Set fixed time for datetime.now()
+        mock_dt.isoformat.side_effect = fixed_now.isoformat # Ensure isoformat also works
         
         await handle_feedback_response(mock_update, mock_context, "AnotherBot")
     
@@ -196,7 +208,7 @@ async def test_handle_feedback_response(mock_update):
         "username": "feedbackuser",
         "feedback": "This is some feedback.",
         "bot_name": "AnotherBot",
-        "timestamp": mock_update.message.date.isoformat(),
+        "timestamp": fixed_now.isoformat(), # Use the fixed timestamp for assertion
     })
     mock_update.message.reply_text.assert_called_once_with(
         t("feedback.response", mock_update.effective_user.language_code, common=True)
