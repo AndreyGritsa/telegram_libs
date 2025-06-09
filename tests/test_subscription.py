@@ -3,7 +3,7 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-# Set environment variables before any imports
+# Set environment variables before any imports that might depend on them
 os.environ['MONGO_URI'] = 'mock_mongo_uri'
 os.environ['SUBSCRIPTION_DB_NAME'] = 'mock_subscription_db'
 os.environ['BOTS_AMOUNT'] = '5'
@@ -12,8 +12,8 @@ os.environ['BOTS_AMOUNT'] = '5'
 mock_collection = MagicMock()
 
 # Patch MongoDB client before importing the module
-with patch('pymongo.mongo_client.MongoClient') as mock_client:
-    mock_client.return_value.__getitem__.return_value.__getitem__.return_value = mock_collection
+with patch('telegram_libs.mongo.mongo_client') as mock_mongo_client:
+    mock_mongo_client.__getitem__.return_value.__getitem__.return_value = mock_collection
     
     # Now import the module after MongoDB client is patched
     from telegram_libs.subscription import (

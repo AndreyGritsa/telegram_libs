@@ -20,7 +20,6 @@ class MongoManager:
         self.users_collection.insert_one(user_data)
         return user_data
 
-
     def get_user_data(self, user_id: int) -> dict:
         """Retrieve user data from the database."""
         user_data = self.users_collection.find_one({"user_id": user_id})
@@ -28,7 +27,6 @@ class MongoManager:
             # Initialize user data if not found
             return self.create_user(user_id)
         return user_data
-
 
     def update_user_data(self, user_id: int, updates: dict) -> None:
         """Update user data in the database."""
