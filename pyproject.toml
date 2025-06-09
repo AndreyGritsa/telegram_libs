@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "telegram_libs"
-version = "0.1.11"
+version = "0.1.12"
 description = "Common libraries for Telegram bots"
 authors = ["Andrey Gritsaenko gricaenko.95a@gmail.com"]
 readme = "README.md"
