@@ -48,7 +48,9 @@ async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboard
     
 
 async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message = """Here is the list of all bots: \n\n
+    message = """Here is the list of all bots: 
+
+
     - <a href="https://t.me/MagMediaBot">Remove Background</a>
     - <a href="https://t.me/UpscaleImageGBot">Upscale Image</a>
     - <a href="https://t.me/GenerateBackgroundGBot">Generate a Background</a>

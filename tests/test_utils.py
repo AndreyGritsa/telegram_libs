@@ -12,6 +12,7 @@ from telegram.ext import Application
 from telegram_libs.utils import get_subscription_keyboard, t
 from telegram_libs.constants import BOTS_AMOUNT
 from datetime import datetime
+from telegram_libs.support_handlers import handle_support_command, _handle_user_response, SUPPORT_WAITING
 
 @pytest.fixture
 def mock_update():
@@ -92,8 +93,6 @@ async def test_more_bots_list_command(mock_update):
 @pytest.mark.asyncio
 async def test_support_command(mock_update):
     """Test the support_command handler."""
-    from telegram_libs.utils import handle_support_command, SUPPORT_WAITING
-    
     mock_context = MagicMock()
     mock_context.user_data = {}
 
@@ -107,8 +106,6 @@ async def test_support_command(mock_update):
 @pytest.mark.asyncio
 async def test_handle_support_response(mock_update):
     """Test the handle_support_response handler."""
-    from telegram_libs.utils import _handle_user_response, SUPPORT_WAITING
-    
     mock_context = MagicMock()
     mock_context.user_data = {SUPPORT_WAITING: True}
     mock_update.effective_user.id = 123
@@ -121,8 +118,8 @@ async def test_handle_support_response(mock_update):
 
     mock_support_collection = MagicMock()
     # Patch the mongo_client to return our mock collection
-    with patch('telegram_libs.utils.mongo_client') as mock_mongo_client, \
-         patch('telegram_libs.utils.datetime') as mock_dt: # Patch datetime
+    with patch('telegram_libs.support_handlers.mongo_client') as mock_mongo_client, \
+         patch('telegram_libs.support_handlers.datetime') as mock_dt: # Patch datetime in support_handlers
         mock_mongo_client.__getitem__.return_value.__getitem__.return_value = mock_support_collection
         mock_dt.now.return_value = fixed_now # Set fixed time for datetime.now()
         mock_dt.isoformat.side_effect = fixed_now.isoformat # Ensure isoformat also works
@@ -145,13 +142,11 @@ async def test_handle_support_response(mock_update):
 @pytest.mark.asyncio
 async def test_handle_support_response_not_waiting(mock_update):
     """Test handle_support_response when not in waiting state."""
-    from telegram_libs.utils import _handle_user_response, SUPPORT_WAITING
-
     mock_context = MagicMock()
     mock_context.user_data = {SUPPORT_WAITING: False}
     
     # Patch the mongo_client to ensure it's not called
-    with patch('telegram_libs.utils.mongo_client') as mock_mongo_client:
+    with patch('telegram_libs.support_handlers.mongo_client') as mock_mongo_client:
         await _handle_user_response(mock_update, mock_context, "TestBot")
         mock_mongo_client.__getitem__.assert_not_called()
 
@@ -164,113 +159,15 @@ def mock_application():
     app.add_handler = MagicMock()
     return app
 
-@pytest.mark.asyncio
-async def test_feedback_command(mock_update):
-    """Test the feedback_command handler."""
-    from telegram_libs.utils import handle_feedback_command, FEEDBACK_WAITING
-    
-    mock_context = MagicMock()
-    mock_context.user_data = {}
-
-    await handle_feedback_command(mock_update, mock_context)
-    
-    mock_update.message.reply_text.assert_called_once_with(
-        "We appreciate your feedback! Please send your suggestions or issues and we will review them as soon as possible."
-    )
-    assert mock_context.user_data[FEEDBACK_WAITING] is True
-
-@pytest.mark.asyncio
-async def test_handle_feedback_response(mock_update):
-    """Test the handle_feedback_response handler."""
-    from telegram_libs.utils import _handle_user_response, FEEDBACK_WAITING
-
-    mock_context = MagicMock()
-    mock_context.user_data = {FEEDBACK_WAITING: True}
-    mock_update.effective_user.id = 456
-    mock_update.effective_user.username = "feedbackuser"
-    mock_update.message.text = "This is some feedback."
-    mock_update.message.date = datetime.now()
-    
-    # Define a fixed datetime for consistent testing
-    fixed_now = datetime(2024, 1, 1, 10, 0, 0)
-
-    mock_feedback_collection = MagicMock()
-    with patch('telegram_libs.utils.mongo_client') as mock_mongo_client, \
-         patch('telegram_libs.utils.datetime') as mock_dt: # Patch datetime
-        mock_mongo_client.__getitem__.return_value.__getitem__.return_value = mock_feedback_collection
-        mock_dt.now.return_value = fixed_now # Set fixed time for datetime.now()
-        mock_dt.isoformat.side_effect = fixed_now.isoformat # Ensure isoformat also works
-        
-        await _handle_user_response(mock_update, mock_context, "AnotherBot")
-    
-    mock_feedback_collection.insert_one.assert_called_once_with({
-        "user_id": 456,
-        "username": "feedbackuser",
-        "feedback": "This is some feedback.",
-        "bot_name": "AnotherBot",
-        "timestamp": fixed_now.isoformat(), # Use the fixed timestamp for assertion
-    })
-    mock_update.message.reply_text.assert_called_once_with(
-        t("feedback.response", mock_update.effective_user.language_code, common=True)
-    )
-    assert mock_context.user_data[FEEDBACK_WAITING] is False
-
-@pytest.mark.asyncio
-async def test_handle_feedback_response_not_waiting(mock_update):
-    """Test handle_feedback_response when not in waiting state."""
-    from telegram_libs.utils import _handle_user_response, FEEDBACK_WAITING
-
-    mock_context = MagicMock()
-    mock_context.user_data = {FEEDBACK_WAITING: False}
-    
-    with patch('telegram_libs.utils.mongo_client') as mock_mongo_client:
-        await _handle_user_response(mock_update, mock_context, "AnotherBot")
-        mock_mongo_client.__getitem__.assert_not_called()
-
-    mock_update.message.reply_text.assert_not_called()
-    assert mock_context.user_data[FEEDBACK_WAITING] is False
-
-def test_register_feedback_and_support_handlers(mock_application):
-    """Test registration of feedback and support handlers."""
-    from telegram_libs.utils import register_feedback_and_support_handlers, handle_support_command, _handle_user_response, handle_feedback_command
-    from telegram.ext import CommandHandler, MessageHandler, filters
-    from functools import partial
-
-    register_feedback_and_support_handlers(mock_application, "TestBot")
-    
-    calls = mock_application.add_handler.call_args_list
-    assert len(calls) == 3 # Only 3 handlers registered: feedback, support, and the combined message handler
-
-    # Check for CommandHandler("feedback", handle_feedback_command)
-    assert any(
-        isinstance(call.args[0], CommandHandler) and \
-        "feedback" in call.args[0].commands and \
-        call.args[0].callback == handle_feedback_command
-        for call in calls
-    )
-    # Check for CommandHandler("support", handle_support_command)
-    assert any(
-        isinstance(call.args[0], CommandHandler) and \
-        "support" in call.args[0].commands and \
-        call.args[0].callback == handle_support_command
-        for call in calls
-    )
-    # Check for MessageHandler(filters.TEXT & ~filters.COMMAND & CombinedFeedbackSupportFilter(), partial(_handle_user_response, bot_name=bot_name))
-    assert any(
-        isinstance(call.args[0], MessageHandler) and \
-        call.args[0].callback.func == _handle_user_response and \
-        call.args[0].callback.keywords == {'bot_name': 'TestBot'}
-        for call in calls
-    )
-
 def test_register_common_handlers(mock_application):
     """Test registration of common handlers."""
     from telegram_libs.utils import register_common_handlers, more_bots_list_command
     from telegram.ext import CommandHandler
+    from telegram_libs.support_handlers import register_support_handlers
     from unittest.mock import patch
     
-    # Patch register_feedback_and_support_handlers to avoid side effects and test its call
-    with patch('telegram_libs.utils.register_feedback_and_support_handlers') as mock_register_feedback_and_support_handlers:
+    # Patch register_support_handlers to avoid side effects and test its call
+    with patch('telegram_libs.utils.register_support_handlers') as mock_register_support_handlers:
         register_common_handlers(mock_application, "TestBot")
         
         calls = mock_application.add_handler.call_args_list
@@ -279,4 +176,4 @@ def test_register_common_handlers(mock_application):
         assert "more" in calls[0].args[0].commands
         assert calls[0].args[0].callback == more_bots_list_command
 
-        mock_register_feedback_and_support_handlers.assert_called_once_with(mock_application, "TestBot")
+        mock_register_support_handlers.assert_called_once_with(mock_application, "TestBot")
