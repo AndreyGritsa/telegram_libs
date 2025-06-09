@@ -92,12 +92,12 @@ async def test_more_bots_list_command(mock_update):
 @pytest.mark.asyncio
 async def test_support_command(mock_update):
     """Test the support_command handler."""
-    from telegram_libs.utils import support_command, SUPPORT_WAITING
+    from telegram_libs.utils import handle_support_command, SUPPORT_WAITING
     
     mock_context = MagicMock()
     mock_context.user_data = {}
 
-    await support_command(mock_update, mock_context)
+    await handle_support_command(mock_update, mock_context)
     
     mock_update.message.reply_text.assert_called_once_with(
         t("support.message", mock_update.effective_user.language_code, common=True)
@@ -107,7 +107,7 @@ async def test_support_command(mock_update):
 @pytest.mark.asyncio
 async def test_handle_support_response(mock_update):
     """Test the handle_support_response handler."""
-    from telegram_libs.utils import handle_support_response, SUPPORT_WAITING
+    from telegram_libs.utils import _handle_user_response, SUPPORT_WAITING
     
     mock_context = MagicMock()
     mock_context.user_data = {SUPPORT_WAITING: True}
@@ -127,7 +127,7 @@ async def test_handle_support_response(mock_update):
         mock_dt.now.return_value = fixed_now # Set fixed time for datetime.now()
         mock_dt.isoformat.side_effect = fixed_now.isoformat # Ensure isoformat also works
 
-        await handle_support_response(mock_update, mock_context, "TestBot")
+        await _handle_user_response(mock_update, mock_context, "TestBot")
     
     mock_support_collection.insert_one.assert_called_once_with({
         "user_id": 123,
@@ -145,14 +145,14 @@ async def test_handle_support_response(mock_update):
 @pytest.mark.asyncio
 async def test_handle_support_response_not_waiting(mock_update):
     """Test handle_support_response when not in waiting state."""
-    from telegram_libs.utils import handle_support_response, SUPPORT_WAITING
+    from telegram_libs.utils import _handle_user_response, SUPPORT_WAITING
 
     mock_context = MagicMock()
     mock_context.user_data = {SUPPORT_WAITING: False}
     
     # Patch the mongo_client to ensure it's not called
     with patch('telegram_libs.utils.mongo_client') as mock_mongo_client:
-        await handle_support_response(mock_update, mock_context, "TestBot")
+        await _handle_user_response(mock_update, mock_context, "TestBot")
         mock_mongo_client.__getitem__.assert_not_called()
 
     mock_update.message.reply_text.assert_not_called()
@@ -167,12 +167,12 @@ def mock_application():
 @pytest.mark.asyncio
 async def test_feedback_command(mock_update):
     """Test the feedback_command handler."""
-    from telegram_libs.utils import feedback_command, FEEDBACK_WAITING
+    from telegram_libs.utils import handle_feedback_command, FEEDBACK_WAITING
     
     mock_context = MagicMock()
     mock_context.user_data = {}
 
-    await feedback_command(mock_update, mock_context)
+    await handle_feedback_command(mock_update, mock_context)
     
     mock_update.message.reply_text.assert_called_once_with(
         "We appreciate your feedback! Please send your suggestions or issues and we will review them as soon as possible."
@@ -182,7 +182,7 @@ async def test_feedback_command(mock_update):
 @pytest.mark.asyncio
 async def test_handle_feedback_response(mock_update):
     """Test the handle_feedback_response handler."""
-    from telegram_libs.utils import handle_feedback_response, FEEDBACK_WAITING
+    from telegram_libs.utils import _handle_user_response, FEEDBACK_WAITING
 
     mock_context = MagicMock()
     mock_context.user_data = {FEEDBACK_WAITING: True}
@@ -201,7 +201,7 @@ async def test_handle_feedback_response(mock_update):
         mock_dt.now.return_value = fixed_now # Set fixed time for datetime.now()
         mock_dt.isoformat.side_effect = fixed_now.isoformat # Ensure isoformat also works
         
-        await handle_feedback_response(mock_update, mock_context, "AnotherBot")
+        await _handle_user_response(mock_update, mock_context, "AnotherBot")
     
     mock_feedback_collection.insert_one.assert_called_once_with({
         "user_id": 456,
@@ -218,13 +218,13 @@ async def test_handle_feedback_response(mock_update):
 @pytest.mark.asyncio
 async def test_handle_feedback_response_not_waiting(mock_update):
     """Test handle_feedback_response when not in waiting state."""
-    from telegram_libs.utils import handle_feedback_response, FEEDBACK_WAITING
+    from telegram_libs.utils import _handle_user_response, FEEDBACK_WAITING
 
     mock_context = MagicMock()
     mock_context.user_data = {FEEDBACK_WAITING: False}
     
     with patch('telegram_libs.utils.mongo_client') as mock_mongo_client:
-        await handle_feedback_response(mock_update, mock_context, "AnotherBot")
+        await _handle_user_response(mock_update, mock_context, "AnotherBot")
         mock_mongo_client.__getitem__.assert_not_called()
 
     mock_update.message.reply_text.assert_not_called()
@@ -232,40 +232,33 @@ async def test_handle_feedback_response_not_waiting(mock_update):
 
 def test_register_feedback_and_support_handlers(mock_application):
     """Test registration of feedback and support handlers."""
-    from telegram_libs.utils import register_feedback_and_support_handlers, support_command, handle_support_response, feedback_command, handle_feedback_response
+    from telegram_libs.utils import register_feedback_and_support_handlers, handle_support_command, _handle_user_response, handle_feedback_command
     from telegram.ext import CommandHandler, MessageHandler, filters
     from functools import partial
 
     register_feedback_and_support_handlers(mock_application, "TestBot")
     
     calls = mock_application.add_handler.call_args_list
-    assert len(calls) == 4
+    assert len(calls) == 3 # Only 3 handlers registered: feedback, support, and the combined message handler
 
-    # Check for CommandHandler("feedback", feedback_command)
+    # Check for CommandHandler("feedback", handle_feedback_command)
     assert any(
         isinstance(call.args[0], CommandHandler) and \
         "feedback" in call.args[0].commands and \
-        call.args[0].callback == feedback_command
+        call.args[0].callback == handle_feedback_command
         for call in calls
     )
-    # Check for MessageHandler(filters.TEXT & ~filters.COMMAND, partial(handle_feedback_response, bot_name=bot_name))
-    assert any(
-        isinstance(call.args[0], MessageHandler) and \
-        call.args[0].callback.func == handle_feedback_response and \
-        call.args[0].callback.keywords == {'bot_name': 'TestBot'}
-        for call in calls
-    )
-    # Check for CommandHandler("support", support_command)
+    # Check for CommandHandler("support", handle_support_command)
     assert any(
         isinstance(call.args[0], CommandHandler) and \
         "support" in call.args[0].commands and \
-        call.args[0].callback == support_command
+        call.args[0].callback == handle_support_command
         for call in calls
     )
-    # Check for MessageHandler(filters.TEXT & ~filters.COMMAND, partial(handle_support_response, bot_name=bot_name))
+    # Check for MessageHandler(filters.TEXT & ~filters.COMMAND & CombinedFeedbackSupportFilter(), partial(_handle_user_response, bot_name=bot_name))
     assert any(
         isinstance(call.args[0], MessageHandler) and \
-        call.args[0].callback.func == handle_support_response and \
+        call.args[0].callback.func == _handle_user_response and \
         call.args[0].callback.keywords == {'bot_name': 'TestBot'}
         for call in calls
     )
