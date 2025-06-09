@@ -4,6 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes, Application, CommandHandler, MessageHandler, filters
 from telegram.ext.filters import BaseFilter
 from telegram_libs.mongo import mongo_client
+from telegram_libs.constants import DEBUG
 from telegram_libs.translation import t
 
 
@@ -22,7 +23,7 @@ async def _handle_user_response(update: Update, context: ContextTypes.DEFAULT_TY
     """Handle user's support message"""
     if context.user_data.get(SUPPORT_WAITING):
         db_name = "support"
-        collection_name = "support"
+        collection_name = "support" if not DEBUG else "support_test"
         message_key = "support.response"
         doc_field_name = "message"
         context_key = SUPPORT_WAITING
