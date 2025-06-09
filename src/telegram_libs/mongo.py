@@ -15,7 +15,8 @@ class MongoManager:
 
     def create_user(self, user_id: int) -> None:
         """Create a new user in the database."""
-        user_data = self.user_schema.update("user_id", user_id)
+        user_data = self.user_schema.copy()
+        user_data["user_id"] = user_id
         self.users_collection.insert_one(user_data)
         return user_data
 
