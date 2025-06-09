@@ -9,11 +9,7 @@
     "info": "Buying a subscription you will get unlimited access to other {0} bots, to see all bots click /more"
   },
   "support": {
-    "message": "If you have any questions or need help, please write it now and we will solve your issue as soon as possible.",
+    "message": "Write down any questions, issues or suggestions you have, and we will resolve them as soon as possible 👇 ",
     "response": "Thank you! Our support team will contact you soon."
-  },
-  "feedback": {
-    "message": "We appreciate your feedback! Please send your suggestions or issues and we will review them as soon as possible.",
-    "response": "Thank you for your feedback!"
   }
 }
