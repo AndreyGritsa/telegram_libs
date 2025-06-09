@@ -7,7 +7,6 @@ from telegram import Update
 from telegram.ext import ContextTypes, Application, CommandHandler
 from telegram_libs.constants import BOTS_AMOUNT
 from telegram_libs.translation import t
-from telegram_libs.mongo import mongo_client
 from telegram_libs.support_handlers import register_support_handlers
 
 
