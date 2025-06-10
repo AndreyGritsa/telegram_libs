@@ -1,9 +1,9 @@
 from datetime import datetime
-from telegram import Update, LabeledPrice, InlineKeyboardMarkup
+from telegram import Update, LabeledPrice, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
-from telegram_libs.constants import SUBSCRIPTION_DB_NAME, DEBUG
+from telegram_libs.constants import SUBSCRIPTION_DB_NAME, DEBUG, BOTS_AMOUNT
 from telegram_libs.mongo import mongo_client, MongoManager
-from telegram_libs.utils import get_user_info, get_subscription_keyboard
+from telegram_libs.utils import get_user_info
 from telegram_libs.translation import t
 
 # Define the subscription database and collection
@@ -55,6 +55,36 @@ def check_subscription_status(user_id: int) -> bool:
 
     expiration = datetime.fromisoformat(subscription["premium_expiration"])
     return expiration > datetime.now()
+
+
+async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboardMarkup:
+    """Get subscription keyboard
+
+    Args:
+        update (Update): Update object
+        lang (str): Language code
+
+    Returns:
+        InlineKeyboardMarkup: Inline keyboard markup
+    """
+    await update.message.reply_text(
+        t("subscription.info", lang, common=True).format(int(BOTS_AMOUNT) - 1)
+    )
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                t("subscription.plans.1month", lang, common=True), callback_data="sub_1month"
+            ),
+            InlineKeyboardButton(
+                t("subscription.plans.3months", lang, common=True), callback_data="sub_3months"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                t("subscription.plans.1year", lang, common=True), callback_data="sub_1year"
+            ),
+        ],
+    ])
 
 
 async def subscription_callback(
@@ -117,7 +147,7 @@ async def subscribe_command(
     user_info = get_user_info(update, mongo_manager)
     lang = user_info["lang"]
 
-    reply_markup = InlineKeyboardMarkup(await get_subscription_keyboard(update, lang))
+    reply_markup = await get_subscription_keyboard(update, lang)
 
     await update.message.reply_text(
         t("subscription.choose_plan", lang, common=True), reply_markup=reply_markup

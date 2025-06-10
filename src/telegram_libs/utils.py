@@ -9,7 +9,6 @@ from telegram_libs.constants import BOTS_AMOUNT
 from telegram_libs.translation import t
 from telegram_libs.support import register_support_handlers
 from telegram_libs.mongo import MongoManager
-from telegram_libs.subscription import subscription_callback
 
 
 basicConfig(
@@ -74,3 +73,8 @@ def get_user_info(update: Update, mongo_manager: MongoManager) -> dict:
         "lang": user_data.get("language", "en"),
         **user_data,
     }
+
+def register_common_handlers(application: Application, bot_name: str) -> None:
+    """Register common handlers to the application."""
+    application.add_handler(CommandHandler("more", more_bots_list_command))
+    register_support_handlers(application, bot_name)
