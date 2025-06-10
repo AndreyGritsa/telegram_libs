@@ -41,6 +41,17 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE,
     payment_info = update.message.successful_payment
     logger.info(f"Payment info received: {payment_info}")
 
+    # Determine which plan was purchased
+    plans = {"1month_sub": 30, "3months_sub": 90, "1year_sub": 365}
+
+    duration_days = plans.get(payment_info.invoice_payload, 0)
+    if duration_days == 0:
+        logger.warning(f"Invalid subscription plan: {payment_info.invoice_payload}")
+        await update.message.reply_text(
+            t("subscription.payment_issue", lang, common=True)
+        )
+        return
+
     # Add order to bot-specific database
     mongo_manager.add_order(
         user_id,
@@ -52,17 +63,6 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE,
             "date": datetime.now().isoformat(),
         },
     )
-
-    # Determine which plan was purchased
-    plans = {"1month_sub": 30, "3months_sub": 90, "1year_sub": 365}
-
-    duration_days = plans.get(payment_info.invoice_payload, 0)
-    if duration_days == 0:
-        logger.warning(f"Invalid subscription plan: {payment_info.invoice_payload}")
-        await update.message.reply_text(
-            t("subscription.payment_issue", lang, common=True)
-        )
-        return
 
     # Calculate expiration date
     expiration_date = datetime.now() + timedelta(days=duration_days)
