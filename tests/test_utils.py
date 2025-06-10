@@ -177,3 +177,39 @@ def test_register_common_handlers(mock_application):
         assert calls[0].args[0].callback == more_bots_list_command
 
         mock_register_support_handlers.assert_called_once_with(mock_application, "TestBot")
+
+@pytest.mark.asyncio
+async def test_support_filter_true(mock_update):
+    """Test SupportFilter returns True when SUPPORT_WAITING is True."""
+    from telegram_libs.support import SupportFilter, SUPPORT_WAITING
+    mock_context = MagicMock()
+    mock_context.user_data = {SUPPORT_WAITING: True}
+    
+    support_filter = SupportFilter()
+    result = support_filter(mock_update, mock_context)
+    
+    assert result is True
+
+@pytest.mark.asyncio
+async def test_support_filter_false(mock_update):
+    """Test SupportFilter returns False when SUPPORT_WAITING is False."""
+    from telegram_libs.support import SupportFilter, SUPPORT_WAITING
+    mock_context = MagicMock()
+    mock_context.user_data = {SUPPORT_WAITING: False}
+    
+    support_filter = SupportFilter()
+    result = support_filter(mock_update, mock_context)
+    
+    assert result is False
+
+@pytest.mark.asyncio
+async def test_support_filter_no_key(mock_update):
+    """Test SupportFilter returns False when SUPPORT_WAITING key is not present."""
+    from telegram_libs.support import SupportFilter
+    mock_context = MagicMock()
+    mock_context.user_data = {}
+    
+    support_filter = SupportFilter()
+    result = support_filter(mock_update, mock_context)
+    
+    assert result is False
