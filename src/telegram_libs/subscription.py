@@ -2,16 +2,17 @@ from datetime import datetime
 from telegram import Update, LabeledPrice, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from telegram_libs.constants import SUBSCRIPTION_DB_NAME, DEBUG, BOTS_AMOUNT
-from telegram_libs.mongo import mongo_client, MongoManager
+from telegram_libs.mongo import MongoManager
 from telegram_libs.utils import get_user_info
 from telegram_libs.translation import t
 
+
 # Define the subscription database and collection
-subscription_db = mongo_client[SUBSCRIPTION_DB_NAME]
+mongo_manager_instance = MongoManager(mongo_database_name=SUBSCRIPTION_DB_NAME)
 subscription_collection = (
-    subscription_db["subscriptions"]
+    mongo_manager_instance.client[SUBSCRIPTION_DB_NAME]["subscriptions"]
     if not DEBUG
-    else subscription_db["subscriptions_test"]
+    else mongo_manager_instance.client[SUBSCRIPTION_DB_NAME]["subscriptions_test"]
 )
 
 

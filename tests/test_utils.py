@@ -118,7 +118,7 @@ async def test_handle_support_response(mock_update):
 
     mock_support_collection = MagicMock()
     # Patch the mongo_client to return our mock collection
-    with patch('telegram_libs.support.mongo_client') as mock_mongo_client, \
+    with patch('telegram_libs.support.mongo_manager_instance.client') as mock_mongo_client, \
          patch('telegram_libs.support.datetime') as mock_dt: # Patch datetime in support_handlers
         mock_mongo_client.__getitem__.return_value.__getitem__.return_value = mock_support_collection
         mock_dt.now.return_value = fixed_now # Set fixed time for datetime.now()
@@ -146,7 +146,7 @@ async def test_handle_support_response_not_waiting(mock_update):
     mock_context.user_data = {SUPPORT_WAITING: False}
     
     # Patch the mongo_client to ensure it's not called
-    with patch('telegram_libs.support.mongo_client') as mock_mongo_client:
+    with patch('telegram_libs.support.mongo_manager_instance.client') as mock_mongo_client:
         await _handle_user_response(mock_update, mock_context, "TestBot")
         mock_mongo_client.__getitem__.assert_not_called()
 

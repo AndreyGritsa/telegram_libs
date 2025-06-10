@@ -8,28 +8,42 @@ os.environ['MONGO_URI'] = 'mock_mongo_uri'
 os.environ['SUBSCRIPTION_DB_NAME'] = 'mock_subscription_db'
 os.environ['BOTS_AMOUNT'] = '5'
 
-# Create mock collection
-mock_collection = MagicMock()
+@pytest.fixture(scope="module", autouse=True)
+def mock_pymongo_client():
+    """Patch pymongo.mongo_client.MongoClient to return a mock client."""
+    with patch('pymongo.mongo_client.MongoClient') as mock_mongo_client_class:
+        mock_client_instance = MagicMock()
+        mock_mongo_client_class.return_value = mock_client_instance
+        yield mock_client_instance
 
-# Patch MongoDB client before importing the module
-with patch('telegram_libs.mongo.mongo_client') as mock_mongo_client:
-    mock_mongo_client.__getitem__.return_value.__getitem__.return_value = mock_collection
-    
-    # Now import the module after MongoDB client is patched
-    from telegram_libs.subscription import (
-        get_subscription,
-        update_subscription,
-        add_subscription_payment,
-        check_subscription_status
-    )
+# Now import the module after MongoDB client is patched
+from telegram_libs.subscription import (
+    get_subscription,
+    update_subscription,
+    add_subscription_payment,
+    check_subscription_status,
+    subscription_collection  # Import subscription_collection
+)
 
 @pytest.fixture(autouse=True)
-def reset_mock():
+def mock_subscription_collection(mock_pymongo_client):
+    """Mock the subscription_collection for all tests in this module."""
+    # Ensure the subscription_collection uses our patched mongo client
+    mock_db = MagicMock()
+    mock_collection = MagicMock()
+    mock_pymongo_client.__getitem__.return_value = mock_db
+    mock_db.__getitem__.return_value = mock_collection
+
+    with patch('telegram_libs.subscription.subscription_collection', new=mock_collection):
+        yield mock_collection
+
+@pytest.fixture(autouse=True)
+def reset_mock(mock_subscription_collection):
     """Reset the mock before each test."""
-    mock_collection.reset_mock()
+    mock_subscription_collection.reset_mock()
 
 class TestSubscription:
-    def test_get_subscription_existing_user(self):
+    def test_get_subscription_existing_user(self, mock_subscription_collection):
         # Setup
         user_id = 123
         mock_subscription = {
@@ -37,28 +51,28 @@ class TestSubscription:
             "is_premium": True,
             "premium_expiration": "2024-12-31T00:00:00"
         }
-        mock_collection.find_one.return_value = mock_subscription
+        mock_subscription_collection.find_one.return_value = mock_subscription
 
         # Execute
         result = get_subscription(user_id)
 
         # Assert
         assert result == mock_subscription
-        mock_collection.find_one.assert_called_once_with({"user_id": user_id})
+        mock_subscription_collection.find_one.assert_called_once_with({"user_id": user_id})
 
-    def test_get_subscription_nonexistent_user(self):
+    def test_get_subscription_nonexistent_user(self, mock_subscription_collection):
         # Setup
         user_id = 123
-        mock_collection.find_one.return_value = None
+        mock_subscription_collection.find_one.return_value = None
 
         # Execute
         result = get_subscription(user_id)
 
         # Assert
         assert result == {"user_id": user_id, "is_premium": False}
-        mock_collection.find_one.assert_called_once_with({"user_id": user_id})
+        mock_subscription_collection.find_one.assert_called_once_with({"user_id": user_id})
 
-    def test_update_subscription(self):
+    def test_update_subscription(self, mock_subscription_collection):
         # Setup
         user_id = 123
         updates = {"is_premium": True, "premium_expiration": "2024-12-31T00:00:00"}
@@ -67,13 +81,13 @@ class TestSubscription:
         update_subscription(user_id, updates)
 
         # Assert
-        mock_collection.update_one.assert_called_once_with(
+        mock_subscription_collection.update_one.assert_called_once_with(
             {"user_id": user_id},
             {"$set": updates},
             upsert=True
         )
 
-    def test_add_subscription_payment(self):
+    def test_add_subscription_payment(self, mock_subscription_collection):
         # Setup
         user_id = 123
         payment_data = {
@@ -87,7 +101,7 @@ class TestSubscription:
         add_subscription_payment(user_id, payment_data)
 
         # Assert
-        mock_collection.update_one.assert_called_once_with(
+        mock_subscription_collection.update_one.assert_called_once_with(
             {"user_id": user_id},
             {
                 "$push": {"payments": payment_data},
@@ -100,7 +114,7 @@ class TestSubscription:
             upsert=True
         )
 
-    def test_check_subscription_status_active(self):
+    def test_check_subscription_status_active(self, mock_subscription_collection):
         # Setup
         user_id = 123
         future_date = (datetime.now() + timedelta(days=30)).isoformat()
@@ -109,16 +123,16 @@ class TestSubscription:
             "is_premium": True,
             "premium_expiration": future_date
         }
-        mock_collection.find_one.return_value = mock_subscription
+        mock_subscription_collection.find_one.return_value = mock_subscription
 
         # Execute
         result = check_subscription_status(user_id)
 
         # Assert
         assert result is True
-        mock_collection.find_one.assert_called_with({"user_id": user_id})
+        mock_subscription_collection.find_one.assert_called_with({"user_id": user_id})
 
-    def test_check_subscription_status_expired(self):
+    def test_check_subscription_status_expired(self, mock_subscription_collection):
         # Setup
         user_id = 123
         past_date = (datetime.now() - timedelta(days=1)).isoformat()
@@ -127,27 +141,27 @@ class TestSubscription:
             "is_premium": True,
             "premium_expiration": past_date
         }
-        mock_collection.find_one.return_value = mock_subscription
+        mock_subscription_collection.find_one.return_value = mock_subscription
 
         # Execute
         result = check_subscription_status(user_id)
 
         # Assert
         assert result is False
-        mock_collection.find_one.assert_called_with({"user_id": user_id})
+        mock_subscription_collection.find_one.assert_called_with({"user_id": user_id})
 
-    def test_check_subscription_status_not_premium(self):
+    def test_check_subscription_status_not_premium(self, mock_subscription_collection):
         # Setup
         user_id = 123
         mock_subscription = {
             "user_id": user_id,
             "is_premium": False
         }
-        mock_collection.find_one.return_value = mock_subscription
+        mock_subscription_collection.find_one.return_value = mock_subscription
 
         # Execute
         result = check_subscription_status(user_id)
 
         # Assert
         assert result is False
-        mock_collection.find_one.assert_called_with({"user_id": user_id}) 
+        mock_subscription_collection.find_one.assert_called_with({"user_id": user_id}) 

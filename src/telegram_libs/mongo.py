@@ -2,16 +2,25 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from telegram_libs.constants import MONGO_URI, DEBUG
 
-mongo_client = MongoClient(MONGO_URI, server_api=ServerApi("1"))
+
+# mongo_client = MongoClient(MONGO_URI, server_api=ServerApi("1"))
 
 
 class MongoManager:
+    _mongo_client = None
+
+    @property
+    def mongo_client(self):
+        if self._mongo_client is None:
+            self._mongo_client = MongoClient(MONGO_URI, server_api=ServerApi("1"))
+        return self._mongo_client
+
     def __init__(self, mongo_database_name: str, **kwargs):
-        self.client = kwargs.get("client") or mongo_client
+        self.client = kwargs.get("client") or self.mongo_client
         self.db = self.client[mongo_database_name]
         self.users_collection = self.db["users_test"] if DEBUG else self.db["users"]
         self.payments_collection = self.db["order_test"] if DEBUG else self.db["order"]
-        self.user_schema = {"user_id": None, **kwargs.get("user_schema")}
+        self.user_schema = {"user_id": None, **(kwargs.get("user_schema") or {})}
 
     def create_user(self, user_id: int) -> None:
         """Create a new user in the database."""

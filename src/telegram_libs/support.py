@@ -3,12 +3,14 @@ from datetime import datetime
 from telegram import Update
 from telegram.ext import ContextTypes, Application, CommandHandler, MessageHandler, filters
 from telegram.ext.filters import BaseFilter
-from telegram_libs.mongo import mongo_client
-from telegram_libs.constants import DEBUG
+from telegram_libs.mongo import MongoManager
+from telegram_libs.constants import DEBUG, SUBSCRIPTION_DB_NAME
 from telegram_libs.translation import t
 
 
 SUPPORT_WAITING = "support_waiting"
+
+mongo_manager_instance = MongoManager(mongo_database_name=SUBSCRIPTION_DB_NAME) # Use an existing or create a new MongoManager instance
 
 
 async def handle_support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -32,7 +34,7 @@ async def _handle_user_response(update: Update, context: ContextTypes.DEFAULT_TY
         # Should not happen if filter is correct
         return
 
-    db = mongo_client[db_name]
+    db = mongo_manager_instance.client[db_name]
     collection = db[collection_name]
     doc = {
         "user_id": update.effective_user.id,
