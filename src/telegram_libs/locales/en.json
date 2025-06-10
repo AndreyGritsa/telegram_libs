@@ -1,10 +1,13 @@
 {
   "subscription": {
     "choose_plan": "Choose a subscription plan:",
+    "payment_issue": "Thank you for your payment, but we couldn't determine your subscription plan.",
+    "success": "🎉 Thank you for your subscription! You now have premium access until {date}.",
+    "active": "✅ You have an active premium subscription!\nExpires in {days} days on {date}",
     "plans": {
-      "1month": "1 Month - 1400 Stars",
-      "3months": "3 Months - 3500 Stars",
-      "1year": "1 Year - 12000 Stars"
+      "1month": "1 Month - 400 Stars",
+      "3months": "3 Months - 1100 Stars",
+      "1year": "1 Year - 3600 Stars"
     },
     "info": "Buying a subscription you will get unlimited access to other {0} bots, to see all bots click /more"
   },

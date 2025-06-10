@@ -4,10 +4,12 @@ from telegram import (
     InlineKeyboardMarkup,
 )
 from telegram import Update
-from telegram.ext import ContextTypes, Application, CommandHandler
+from telegram.ext import ContextTypes, Application, CommandHandler, CallbackQueryHandler
 from telegram_libs.constants import BOTS_AMOUNT
 from telegram_libs.translation import t
-from telegram_libs.support_handlers import register_support_handlers
+from telegram_libs.support import register_support_handlers
+from telegram_libs.mongo import MongoManager
+from telegram_libs.subscription import subscription_callback
 
 
 basicConfig(
@@ -58,8 +60,17 @@ async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_T
     """
     await update.message.reply_text(message, disable_web_page_preview=True, parse_mode='HTML')
     
-
-def register_common_handlers(app: Application, bot_name: str) -> None:
-    """Register common handlers for the bot"""
-    app.add_handler(CommandHandler("more", more_bots_list_command))
-    register_support_handlers(app, bot_name)
+    
+def get_user_info(update: Update, mongo_manager: MongoManager) -> dict:
+    """Get user information from the update object."""
+    user = update.effective_user
+    user_data = mongo_manager.get_user_data(user.id)
+    
+    return {
+        "user_id": user.id,
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "lang": user_data.get("language", "en"),
+        **user_data,
+    }

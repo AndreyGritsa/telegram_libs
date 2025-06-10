@@ -50,9 +50,3 @@ async def _handle_user_response(update: Update, context: ContextTypes.DEFAULT_TY
 class SupportFilter(BaseFilter):
     def __call__(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         return context.user_data.get(SUPPORT_WAITING, False)
-
-
-def register_support_handlers(app: Application, bot_name: str) -> None:
-    """Register support handlers for the bot"""
-    app.add_handler(CommandHandler("support", handle_support_command))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & SupportFilter(), partial(_handle_user_response, bot_name=bot_name))) 

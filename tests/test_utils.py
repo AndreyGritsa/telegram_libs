@@ -12,7 +12,7 @@ from telegram.ext import Application
 from telegram_libs.utils import get_subscription_keyboard, t
 from telegram_libs.constants import BOTS_AMOUNT
 from datetime import datetime
-from telegram_libs.support_handlers import handle_support_command, _handle_user_response, SUPPORT_WAITING
+from telegram_libs.support import handle_support_command, _handle_user_response, SUPPORT_WAITING
 
 @pytest.fixture
 def mock_update():
@@ -163,7 +163,7 @@ def test_register_common_handlers(mock_application):
     """Test registration of common handlers."""
     from telegram_libs.utils import register_common_handlers, more_bots_list_command
     from telegram.ext import CommandHandler
-    from telegram_libs.support_handlers import register_support_handlers
+    from telegram_libs.support import register_support_handlers
     from unittest.mock import patch
     
     # Patch register_support_handlers to avoid side effects and test its call
