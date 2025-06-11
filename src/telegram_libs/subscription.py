@@ -5,6 +5,7 @@ from telegram_libs.constants import SUBSCRIPTION_DB_NAME, DEBUG, BOTS_AMOUNT
 from telegram_libs.mongo import MongoManager
 from telegram_libs.utils import get_user_info
 from telegram_libs.translation import t
+from telegram_libs.logger import BotLogger
 
 
 # Define the subscription database and collection
@@ -89,10 +90,13 @@ async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboard
 
 
 async def subscription_callback(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
+    update: Update, context: ContextTypes.DEFAULT_TYPE, bot_logger: BotLogger
 ) -> None:
     """Handle subscription button clicks"""
     query = update.callback_query
+    user_id = query.from_user.id
+    bot_name = context.bot.name
+    bot_logger.log_action(user_id, "subscription_button_click", bot_name, {"plan": query.data})
     await query.answer()
     plan = query.data
 
@@ -142,11 +146,14 @@ async def subscription_callback(
 
 
 async def subscribe_command(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, mongo_manager: MongoManager
+    update: Update, context: ContextTypes.DEFAULT_TYPE, mongo_manager: MongoManager, bot_logger: BotLogger
 ) -> None:
     """Show subscription options"""
     user_info = get_user_info(update, mongo_manager)
+    user_id = user_info["user_id"]
     lang = user_info["lang"]
+    bot_name = context.bot.name
+    bot_logger.log_action(user_id, "subscribe_command", bot_name)
 
     reply_markup = await get_subscription_keyboard(update, lang)
 

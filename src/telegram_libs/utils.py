@@ -4,11 +4,11 @@ from telegram import (
     InlineKeyboardMarkup,
 )
 from telegram import Update
-from telegram.ext import ContextTypes, Application, CommandHandler, CallbackQueryHandler
+from telegram.ext import ContextTypes
 from telegram_libs.constants import BOTS_AMOUNT
 from telegram_libs.translation import t
-from telegram_libs.support import register_support_handlers
 from telegram_libs.mongo import MongoManager
+from telegram_libs.logger import BotLogger
 
 
 basicConfig(
@@ -47,7 +47,10 @@ async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboard
     ]
     
 
-async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE, bot_logger: BotLogger) -> None:
+    user_id = update.effective_user.id
+    bot_name = context.bot.name
+    bot_logger.log_action(user_id, "more_bots_list_command", bot_name)
     message = """Here is the list of all bots: 
 
 
@@ -73,8 +76,3 @@ def get_user_info(update: Update, mongo_manager: MongoManager) -> dict:
         "lang": user_data.get("language", "en"),
         **user_data,
     }
-
-def register_common_handlers(application: Application, bot_name: str) -> None:
-    """Register common handlers to the application."""
-    application.add_handler(CommandHandler("more", more_bots_list_command))
-    register_support_handlers(application, bot_name)

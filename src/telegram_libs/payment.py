@@ -6,6 +6,7 @@ from telegram_libs.translation import t
 from telegram_libs.subscription import add_subscription_payment
 from telegram_libs.utils import get_user_info
 from telegram_libs.mongo import MongoManager
+from telegram_libs.logger import BotLogger
 
 logger = getLogger(__name__)
 
@@ -33,12 +34,14 @@ async def precheckout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
             logger.error(f"Error sending pre-checkout error: {e2}")
 
 
-async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, mongo_manager: MongoManager) -> None:
+async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, mongo_manager: MongoManager, bot_logger: BotLogger) -> None:
     """Handle successful payments"""
     user_info = get_user_info(update, mongo_manager)
     user_id = user_info["user_id"]
     lang = user_info["lang"]
     payment_info = update.message.successful_payment
+    bot_name = context.bot.name
+    bot_logger.log_action(user_id, "successful_payment", bot_name, {"payload": payment_info.invoice_payload, "amount": payment_info.total_amount, "currency": payment_info.currency})
     logger.info(f"Payment info received: {payment_info}")
 
     # Determine which plan was purchased

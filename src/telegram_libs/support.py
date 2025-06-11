@@ -6,6 +6,7 @@ from telegram.ext.filters import BaseFilter
 from telegram_libs.mongo import MongoManager
 from telegram_libs.constants import DEBUG, SUBSCRIPTION_DB_NAME
 from telegram_libs.translation import t
+from telegram_libs.logger import BotLogger
 
 
 SUPPORT_WAITING = "support_waiting"
@@ -13,16 +14,21 @@ SUPPORT_WAITING = "support_waiting"
 mongo_manager_instance = MongoManager(mongo_database_name=SUBSCRIPTION_DB_NAME) # Use an existing or create a new MongoManager instance
 
 
-async def handle_support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_support_command(update: Update, context: ContextTypes.DEFAULT_TYPE, bot_logger: BotLogger) -> None:
     """Support command handler"""
+    user_id = update.effective_user.id
+    bot_name = context.bot.name
+    bot_logger.log_action(user_id, "support_command", bot_name)
     await update.message.reply_text(
         t("support.message", update.effective_user.language_code, common=True)
     )
     context.user_data[SUPPORT_WAITING] = True
     
 
-async def _handle_user_response(update: Update, context: ContextTypes.DEFAULT_TYPE, bot_name: str) -> None:
+async def _handle_user_response(update: Update, context: ContextTypes.DEFAULT_TYPE, bot_name: str, bot_logger: BotLogger) -> None:
     """Handle user's support message"""
+    user_id = update.effective_user.id
+    bot_logger.log_action(user_id, "support_message_sent", bot_name, {"message": update.message.text})
     if context.user_data.get(SUPPORT_WAITING):
         db_name = "support"
         collection_name = "support" if not DEBUG else "support_test"
