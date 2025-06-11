@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from telegram import Update, Message
 from telegram.ext import Application
 from telegram_libs.utils import get_subscription_keyboard, t
-from telegram_libs.constants import BOTS_AMOUNT
+from telegram_libs.constants import BOTS_AMOUNT, BOTS
 from datetime import datetime
 from telegram_libs.support import handle_support_command, _handle_user_response, SUPPORT_WAITING
 from telegram_libs.logger import BotLogger
@@ -82,13 +82,9 @@ async def test_more_bots_list_command(mock_update):
     await more_bots_list_command(mock_update, mock_context, mock_bot_logger)
     
     # Check that reply_text was called with correct message and parameters
-    expected_message = """Here is the list of all bots: \n\n
-    - <a href="https://t.me/MagMediaBot">Remove Background</a>
-    - <a href="https://t.me/UpscaleImageGBot">Upscale Image</a>
-    - <a href="https://t.me/GenerateBackgroundGBot">Generate a Background</a>
-    - <a href="https://t.me/kudapoyti_go_bot">Recommend a place to visit</a>
-    - <a href="https://t.me/TryOnOutfitGBot">Try On Outfit</a>
-    """
+    expected_message = "Here is the list of all bots:" + "\n".join(
+        f"- <a href='{url}'>{name}</a>" for url, name in BOTS.items()
+    )
     mock_update.message.reply_text.assert_called_once_with(
         expected_message,
         disable_web_page_preview=True,

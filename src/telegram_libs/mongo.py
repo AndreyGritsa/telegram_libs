@@ -3,9 +3,6 @@ from pymongo.server_api import ServerApi
 from telegram_libs.constants import MONGO_URI, DEBUG
 
 
-# mongo_client = MongoClient(MONGO_URI, server_api=ServerApi("1"))
-
-
 class MongoManager:
     _mongo_client = None
 

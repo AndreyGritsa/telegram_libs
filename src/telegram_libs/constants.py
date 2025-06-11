@@ -2,13 +2,21 @@ import os
 
 required_constants = []
 
-BOTS_AMOUNT = os.getenv("BOTS_AMOUNT")
 MONGO_URI = os.getenv("MONGO_URI")
 SUBSCRIPTION_DB_NAME = os.getenv("SUBSCRIPTION_DB_NAME")
 LOGS_DB_NAME = os.getenv("LOGS_DB_NAME", "logs")
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
+BOTS = {
+    "https://t.me/MagMediaBot": "Remove Background",
+    "https://t.me/UpscaleImageGBot": "Upscale Image",
+    "https://t.me/GenerateBackgroundGBot": "Generate a Background",
+    "https://t.me/kudapoyti_go_bot": "Recommend a place to visit",
+    "https://t.me/TryOnOutfitGBot": "Try On Outfit",
+    "https://t.me/CloneVoiceAIGBot": "Clone Voice AI",
+}
 
-required_constants.append(("BOTS_AMOUNT", BOTS_AMOUNT))
+BOTS_AMOUNT = len(BOTS)
+
 required_constants.append(("MONGO_URI", MONGO_URI))
 required_constants.append(("SUBSCRIPTION_DB_NAME", SUBSCRIPTION_DB_NAME))
 
