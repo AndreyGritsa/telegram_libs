@@ -28,8 +28,8 @@ async def handle_support_command(update: Update, context: ContextTypes.DEFAULT_T
 async def _handle_user_response(update: Update, context: ContextTypes.DEFAULT_TYPE, bot_name: str, bot_logger: BotLogger) -> None:
     """Handle user's support message"""
     user_id = update.effective_user.id
-    bot_logger.log_action(user_id, "support_message_sent", bot_name, {"message": update.message.text})
     if context.user_data.get(SUPPORT_WAITING):
+        bot_logger.log_action(user_id, "support_message_sent", bot_name, {"message": update.message.text})
         db_name = "support"
         collection_name = "support" if not DEBUG else "support_test"
         message_key = "support.response"

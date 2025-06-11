@@ -13,6 +13,9 @@ from telegram_libs.utils import get_subscription_keyboard, t
 from telegram_libs.constants import BOTS_AMOUNT
 from datetime import datetime
 from telegram_libs.support import handle_support_command, _handle_user_response, SUPPORT_WAITING
+from telegram_libs.logger import BotLogger
+from telegram_libs.error import error_handler
+from functools import partial
 
 @pytest.fixture
 def mock_update():
@@ -70,11 +73,13 @@ async def test_get_subscription_keyboard_different_language(mock_update):
 async def test_more_bots_list_command(mock_update):
     from telegram_libs.utils import more_bots_list_command
     
-    # Create a mock context
+    # Create a mock context and bot_logger
     mock_context = MagicMock()
+    mock_context.bot.name = "TestBot"
+    mock_bot_logger = MagicMock(spec=BotLogger)
     
     # Call the function
-    await more_bots_list_command(mock_update, mock_context)
+    await more_bots_list_command(mock_update, mock_context, mock_bot_logger)
     
     # Check that reply_text was called with correct message and parameters
     expected_message = """Here is the list of all bots: \n\n
@@ -89,29 +94,37 @@ async def test_more_bots_list_command(mock_update):
         disable_web_page_preview=True,
         parse_mode='HTML'
     )
+    mock_bot_logger.log_action.assert_called_once_with(mock_update.effective_user.id, "more_bots_list_command", "TestBot")
 
 @pytest.mark.asyncio
 async def test_support_command(mock_update):
     """Test the support_command handler."""
+    from telegram_libs.logger import BotLogger
     mock_context = MagicMock()
     mock_context.user_data = {}
+    mock_context.bot.name = "TestBot"
+    mock_bot_logger = MagicMock(spec=BotLogger)
 
-    await handle_support_command(mock_update, mock_context)
+    await handle_support_command(mock_update, mock_context, mock_bot_logger)
     
     mock_update.message.reply_text.assert_called_once_with(
         t("support.message", mock_update.effective_user.language_code, common=True)
     )
     assert mock_context.user_data[SUPPORT_WAITING] is True
+    mock_bot_logger.log_action.assert_called_once_with(mock_update.effective_user.id, "support_command", "TestBot")
 
 @pytest.mark.asyncio
 async def test_handle_support_response(mock_update):
     """Test the handle_support_response handler."""
+    from telegram_libs.logger import BotLogger
     mock_context = MagicMock()
     mock_context.user_data = {SUPPORT_WAITING: True}
     mock_update.effective_user.id = 123
     mock_update.effective_user.username = "testuser"
     mock_update.message.text = "This is a support message."
     mock_update.message.date = datetime.now()
+    mock_context.bot.name = "TestBot"
+    mock_bot_logger = MagicMock(spec=BotLogger)
     
     # Define a fixed datetime for consistent testing
     fixed_now = datetime(2024, 1, 1, 10, 0, 0)
@@ -124,7 +137,7 @@ async def test_handle_support_response(mock_update):
         mock_dt.now.return_value = fixed_now # Set fixed time for datetime.now()
         mock_dt.isoformat.side_effect = fixed_now.isoformat # Ensure isoformat also works
 
-        await _handle_user_response(mock_update, mock_context, "TestBot")
+        await _handle_user_response(mock_update, mock_context, "TestBot", mock_bot_logger)
     
     mock_support_collection.insert_one.assert_called_once_with({
         "user_id": 123,
@@ -138,20 +151,25 @@ async def test_handle_support_response(mock_update):
         t("support.response", mock_update.effective_user.language_code, common=True)
     )
     assert mock_context.user_data[SUPPORT_WAITING] is False
+    mock_bot_logger.log_action.assert_called_once_with(mock_update.effective_user.id, "support_message_sent", "TestBot", {"message": "This is a support message."})
 
 @pytest.mark.asyncio
 async def test_handle_support_response_not_waiting(mock_update):
     """Test handle_support_response when not in waiting state."""
+    from telegram_libs.logger import BotLogger
     mock_context = MagicMock()
     mock_context.user_data = {SUPPORT_WAITING: False}
+    mock_context.bot.name = "TestBot"
+    mock_bot_logger = MagicMock(spec=BotLogger)
     
     # Patch the mongo_client to ensure it's not called
     with patch('telegram_libs.support.mongo_manager_instance.client') as mock_mongo_client:
-        await _handle_user_response(mock_update, mock_context, "TestBot")
+        await _handle_user_response(mock_update, mock_context, "TestBot", mock_bot_logger)
         mock_mongo_client.__getitem__.assert_not_called()
 
     mock_update.message.reply_text.assert_not_called()
     assert mock_context.user_data[SUPPORT_WAITING] is False
+    mock_bot_logger.log_action.assert_not_called()
 
 @pytest.fixture
 def mock_application():
@@ -161,14 +179,22 @@ def mock_application():
 
 def test_register_common_handlers(mock_application):
     """Test registration of common handlers."""
-    from telegram_libs.utils import register_common_handlers, more_bots_list_command
+    from telegram_libs.handlers import register_common_handlers
+    from telegram_libs.utils import more_bots_list_command
     from telegram.ext import CommandHandler
     from telegram_libs.support import register_support_handlers
-    from unittest.mock import patch
-    
-    # Patch register_support_handlers to avoid side effects and test its call
-    with patch('telegram_libs.utils.register_support_handlers') as mock_register_support_handlers:
-        register_common_handlers(mock_application, "TestBot")
+    from telegram_libs.mongo import MongoManager
+    from unittest.mock import patch, MagicMock
+
+    mock_mongo_manager = MagicMock(spec=MongoManager)
+
+    with patch('telegram_libs.handlers.register_support_handlers') as mock_register_support_handlers, \
+         patch('telegram_libs.handlers.register_subscription_handlers') as mock_register_subscription_handlers, \
+         patch('telegram_libs.handlers.BotLogger') as MockBotLogger,\
+         patch.object(mock_application, 'add_error_handler') as mock_add_error_handler:
+
+        mock_bot_logger_instance = MockBotLogger.return_value
+        register_common_handlers(mock_application, "TestBot", mock_mongo_manager)
         
         calls = mock_application.add_handler.call_args_list
         assert len(calls) == 1
@@ -176,7 +202,15 @@ def test_register_common_handlers(mock_application):
         assert "more" in calls[0].args[0].commands
         assert calls[0].args[0].callback == more_bots_list_command
 
-        mock_register_support_handlers.assert_called_once_with(mock_application, "TestBot")
+        # Assert that add_error_handler was called with partial(error_handler, ...)
+        mock_add_error_handler.assert_called_once()
+        call_args, call_kwargs = mock_add_error_handler.call_args
+        assert isinstance(call_args[0], partial)
+        assert call_args[0].func == error_handler
+        assert call_args[0].keywords == {'bot_logger': mock_bot_logger_instance, 'bot_name': "TestBot"}
+
+        mock_register_support_handlers.assert_called_once_with(mock_application, "TestBot", mock_bot_logger_instance)
+        mock_register_subscription_handlers.assert_called_once_with(mock_application, mock_mongo_manager, mock_bot_logger_instance)
 
 @pytest.mark.asyncio
 async def test_support_filter_true(mock_update):

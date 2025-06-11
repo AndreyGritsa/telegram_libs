@@ -66,7 +66,9 @@ async def test_precheckout_handler_error(mock_update_precheckout, mock_context):
 @patch("telegram_libs.payment.get_user_info")
 @patch("telegram_libs.payment.add_subscription_payment")
 @patch("telegram_libs.payment.datetime")
+@patch("telegram_libs.payment.BotLogger")
 async def test_successful_payment_valid_plan(
+    MockBotLogger,
     mock_datetime,
     mock_add_subscription_payment,
     mock_get_user_info,
@@ -74,6 +76,10 @@ async def test_successful_payment_valid_plan(
     mock_context,
     mock_mongo_manager,
 ):
+    # Mock bot_logger
+    mock_bot_logger = MockBotLogger.return_value
+    mock_context.bot.name = "TestBot"
+
     # Mock get_user_info
     mock_get_user_info.return_value = {"user_id": 123, "lang": "en"}
 
@@ -85,7 +91,7 @@ async def test_successful_payment_valid_plan(
     mock_datetime.timedelta = timedelta
 
     await successful_payment(
-        mock_update_successful_payment, mock_context, mock_mongo_manager
+        mock_update_successful_payment, mock_context, mock_mongo_manager, mock_bot_logger
     )
 
     # Assertions
@@ -124,17 +130,34 @@ async def test_successful_payment_valid_plan(
         )
     )
 
+    mock_bot_logger.log_action.assert_called_once_with(
+        123,
+        "successful_payment",
+        "TestBot",
+        {
+            "payload": mock_update_successful_payment.message.successful_payment.invoice_payload,
+            "amount": mock_update_successful_payment.message.successful_payment.total_amount,
+            "currency": mock_update_successful_payment.message.successful_payment.currency,
+        },
+    )
+
 
 @pytest.mark.asyncio
 @patch("telegram_libs.payment.get_user_info")
 @patch("telegram_libs.payment.t")
+@patch("telegram_libs.payment.BotLogger")
 async def test_successful_payment_invalid_plan(
+    MockBotLogger,
     mock_t,
     mock_get_user_info,
     mock_update_successful_payment,
     mock_context,
     mock_mongo_manager,
 ):
+    # Mock bot_logger
+    mock_bot_logger = MockBotLogger.return_value
+    mock_context.bot.name = "TestBot"
+
     # Mock get_user_info
     mock_get_user_info.return_value = {"user_id": 123, "lang": "en"}
 
@@ -144,7 +167,7 @@ async def test_successful_payment_invalid_plan(
     )
 
     await successful_payment(
-        mock_update_successful_payment, mock_context, mock_mongo_manager
+        mock_update_successful_payment, mock_context, mock_mongo_manager, mock_bot_logger
     )
 
     # Assertions
@@ -155,6 +178,17 @@ async def test_successful_payment_invalid_plan(
         mock_t("subscription.payment_issue", "en", common=True)
     )
     mock_mongo_manager.add_order.assert_not_called()
+    mock_bot_logger.log_action.assert_called_once_with(
+        123,
+        "successful_payment",
+        "TestBot",
+        {
+            "payload": mock_update_successful_payment.message.successful_payment.invoice_payload,
+            "amount": mock_update_successful_payment.message.successful_payment.total_amount,
+            "currency": mock_update_successful_payment.message.successful_payment.currency,
+        },
+    )
+
     # Ensure add_subscription_payment was not called for invalid plan
     with patch("telegram_libs.payment.add_subscription_payment") as mock_add_subscription_payment:
         mock_add_subscription_payment.assert_not_called() 

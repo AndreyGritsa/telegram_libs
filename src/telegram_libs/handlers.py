@@ -55,4 +55,4 @@ def register_common_handlers(
     register_subscription_handlers(app, mongo_manager, bot_logger)
     
     # Error handler
-    app.add_error_handler(error_handler)
+    app.add_error_handler(partial(error_handler, bot_logger=bot_logger, bot_name=bot_name))
