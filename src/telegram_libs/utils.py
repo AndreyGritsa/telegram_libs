@@ -51,7 +51,7 @@ async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_T
     user_id = update.effective_user.id
     bot_name = context.bot.name
     bot_logger.log_action(user_id, "more_bots_list_command", bot_name)
-    message = "Here is the list of all bots:"
+    message = "Here is the list of all bots:\n\n"
     bots_list  = "\n".join(
         f"- <a href='{url}'>{name}</a>" for url, name in BOTS.items()
     )

@@ -82,7 +82,7 @@ async def test_more_bots_list_command(mock_update):
     await more_bots_list_command(mock_update, mock_context, mock_bot_logger)
     
     # Check that reply_text was called with correct message and parameters
-    expected_message = "Here is the list of all bots:" + "\n".join(
+    expected_message = "Here is the list of all bots:\n\n" + "\n".join(
         f"- <a href='{url}'>{name}</a>" for url, name in BOTS.items()
     )
     mock_update.message.reply_text.assert_called_once_with(
