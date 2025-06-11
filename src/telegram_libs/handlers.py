@@ -49,7 +49,7 @@ def register_common_handlers(
 ) -> None:
     """Register common handlers for the bot"""
     bot_logger = BotLogger()
-    app.add_handler(CommandHandler("more", more_bots_list_command))
+    app.add_handler(CommandHandler("more", partial(more_bots_list_command, bot_logger=bot_logger)))
     
     register_support_handlers(app, bot_name, bot_logger)
     register_subscription_handlers(app, mongo_manager, bot_logger)

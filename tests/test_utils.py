@@ -200,7 +200,12 @@ def test_register_common_handlers(mock_application):
         assert len(calls) == 1
         assert isinstance(calls[0].args[0], CommandHandler)
         assert "more" in calls[0].args[0].commands
-        assert calls[0].args[0].callback == more_bots_list_command
+        
+        # Assert that the callback is a partial object and its function is more_bots_list_command
+        # and that bot_logger is correctly passed
+        assert isinstance(calls[0].args[0].callback, partial)
+        assert calls[0].args[0].callback.func == more_bots_list_command
+        assert calls[0].args[0].callback.keywords == {'bot_logger': mock_bot_logger_instance}
 
         # Assert that add_error_handler was called with partial(error_handler, ...)
         mock_add_error_handler.assert_called_once()
