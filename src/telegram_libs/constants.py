@@ -9,10 +9,10 @@ DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 BOTS = {
     "https://t.me/MagMediaBot": "Remove Background",
     "https://t.me/UpscaleImageGBot": "Upscale Image",
-    "https://t.me/GenerateBackgroundGBot": "Generate a Background",
-    "https://t.me/kudapoyti_go_bot": "Recommend a place to visit",
+    "https://t.me/GenerateBackgroundGBot": "Generate Background",
+    "https://t.me/kudapoyti_go_bot": "Recommend Place to Visit",
     "https://t.me/TryOnOutfitGBot": "Try On Outfit",
-    "https://t.me/CloneVoiceAIGBot": "Clone Voice AI",
+    "https://t.me/CloneVoiceAIGBot": "Clone Voice, Text to Speech AI",
 }
 
 BOTS_AMOUNT = len(BOTS)
