@@ -268,15 +268,6 @@ class TestRateLimitManager:
         assert manager.mongo_manager == mock_mongo_manager
         assert manager.rate_limit == 5
 
-    def test_check_limit_premium_user(self, rate_limit_manager, mock_mongo_manager):
-        mock_mongo_manager.check_subscription_status.return_value = True
-        assert rate_limit_manager.check_limit(123) is True
-        mock_mongo_manager.check_subscription_status.assert_called_once_with(123)
-        
-        # Ensure no other mongo_manager methods are called for premium users
-        mock_mongo_manager.get_user_data.assert_not_called()
-        mock_mongo_manager.update_user_data.assert_not_called()
-
     @patch("telegram_libs.utils.datetime")
     def test_check_limit_first_action_today(self, mock_datetime, rate_limit_manager, mock_mongo_manager):
         user_id = 123
@@ -287,7 +278,8 @@ class TestRateLimitManager:
         # Mock user data as if no previous action date
         mock_mongo_manager.get_user_data.return_value = {"actions_today": 0, "last_action_date": None}
         
-        assert rate_limit_manager.check_limit(user_id) is True
+        can_perform, _ = rate_limit_manager.check_limit(user_id)
+        assert can_perform is True
         mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
         mock_mongo_manager.update_user_data.assert_not_called()
 
@@ -305,7 +297,8 @@ class TestRateLimitManager:
         }
         mock_mongo_manager.get_user_data.return_value = mock_user_data
         
-        assert rate_limit_manager.check_limit(user_id) is True
+        can_perform, _ = rate_limit_manager.check_limit(user_id)
+        assert can_perform is True
         mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
         mock_mongo_manager.update_user_data.assert_not_called()
 
@@ -323,7 +316,8 @@ class TestRateLimitManager:
         }
         mock_mongo_manager.get_user_data.return_value = mock_user_data
         
-        assert rate_limit_manager.check_limit(user_id) is True
+        can_perform, _ = rate_limit_manager.check_limit(user_id)
+        assert can_perform is True
         mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
         mock_mongo_manager.update_user_data.assert_called_once_with(
             user_id,
@@ -347,7 +341,8 @@ class TestRateLimitManager:
         }
         mock_mongo_manager.get_user_data.return_value = mock_user_data
 
-        assert rate_limit_manager.check_limit(user_id) is False
+        can_perform, _ = rate_limit_manager.check_limit(user_id)
+        assert can_perform is False
         mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
         mock_mongo_manager.update_user_data.assert_not_called()
 
@@ -362,10 +357,69 @@ class TestRateLimitManager:
         mock_datetime.now.return_value = fixed_now
         # mock_datetime.isoformat.side_effect = fixed_now.isoformat # Not needed if datetime.now() returns real datetime object
 
-        rate_limit_manager.increment_action_count(user_id)
+        rate_limit_manager.increment_action_count(user_id, mock_user_data)
         
-        mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
+        mock_mongo_manager.get_user_data.assert_not_called() # Should not be called if user_data is provided
         mock_mongo_manager.update_user_data.assert_called_once_with(
             user_id,
             {"actions_today": initial_actions + 1, "last_action_date": fixed_now.isoformat()},
         )
+
+    @patch("telegram_libs.utils.datetime")
+    def test_check_and_increment_premium_user(self, mock_datetime, rate_limit_manager, mock_mongo_manager):
+        user_id = 123
+        mock_mongo_manager.check_subscription_status.return_value = True
+
+        result = rate_limit_manager.check_and_increment(user_id)
+
+        assert result is True
+        mock_mongo_manager.check_subscription_status.assert_called_once_with(user_id)
+        mock_mongo_manager.get_user_data.assert_not_called() # Should not be called for premium users
+        mock_mongo_manager.update_user_data.assert_not_called() # Should not be called for premium users
+
+    @patch("telegram_libs.utils.datetime")
+    def test_check_and_increment_non_premium_within_limit(self, mock_datetime, rate_limit_manager, mock_mongo_manager):
+        user_id = 123
+        mock_mongo_manager.check_subscription_status.return_value = False
+
+        fixed_now = datetime(2024, 1, 1, 10, 0, 0)
+        mock_datetime.now.return_value = fixed_now
+        mock_datetime.fromisoformat.side_effect = lambda x: datetime.fromisoformat(x) # Allow real fromisoformat to be called
+
+        mock_user_data = {
+            "last_action_date": "2024-01-01T09:00:00",
+            "actions_today": 2  # Within limit of 3
+        }
+        mock_mongo_manager.get_user_data.return_value = mock_user_data
+
+        result = rate_limit_manager.check_and_increment(user_id)
+
+        assert result is True
+        mock_mongo_manager.check_subscription_status.assert_called_once_with(user_id)
+        mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
+        mock_mongo_manager.update_user_data.assert_called_once_with(
+            user_id,
+            {"actions_today": 3, "last_action_date": fixed_now.isoformat()},
+        )
+
+    @patch("telegram_libs.utils.datetime")
+    def test_check_and_increment_non_premium_exceeded_limit(self, mock_datetime, rate_limit_manager, mock_mongo_manager):
+        user_id = 123
+        mock_mongo_manager.check_subscription_status.return_value = False
+
+        fixed_now = datetime(2024, 1, 1, 10, 0, 0)
+        mock_datetime.now.return_value = fixed_now
+        mock_datetime.fromisoformat.side_effect = lambda x: datetime.fromisoformat(x) # Allow real fromisoformat to be called
+
+        mock_user_data = {
+            "last_action_date": "2024-01-01T09:00:00",
+            "actions_today": 3  # At the limit of 3
+        }
+        mock_mongo_manager.get_user_data.return_value = mock_user_data
+
+        result = rate_limit_manager.check_and_increment(user_id)
+
+        assert result is False
+        mock_mongo_manager.check_subscription_status.assert_called_once_with(user_id)
+        mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
+        mock_mongo_manager.update_user_data.assert_not_called()
