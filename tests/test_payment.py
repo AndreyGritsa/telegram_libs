@@ -4,15 +4,31 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
 
 # Set required environment variables for the imports that depend on them
-os.environ["BOTS_AMOUNT"] = "5"
-os.environ["MONGO_URI"] = "mongodb://localhost:27017"
-os.environ["SUBSCRIPTION_DB_NAME"] = "subscription_db"
+# os.environ["BOTS_AMOUNT"] = "5"
+# os.environ["MONGO_URI"] = "mongodb://localhost:27017"
+# os.environ["SUBSCRIPTION_DB_NAME"] = "subscription_db"
 
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram_libs.payment import precheckout_handler, successful_payment
 from telegram_libs.mongo import MongoManager
 from telegram_libs.translation import t
+from telegram_libs.constants import SUBSCRIPTION_DB_NAME # Import SUBSCRIPTION_DB_NAME
+
+@pytest.fixture(autouse=True)
+def set_env_vars(monkeypatch):
+    monkeypatch.setenv("BOTS_AMOUNT", "5")
+    monkeypatch.setenv("MONGO_URI", "mongodb://localhost:27017")
+    monkeypatch.setenv("SUBSCRIPTION_DB_NAME", "subscription_db")
+
+
+@pytest.fixture(scope="module", autouse=True)
+def mock_pymongo_client_global():
+    """Patch pymongo.mongo_client.MongoClient to return a mock client globally."""
+    with patch('pymongo.mongo_client.MongoClient') as mock_mongo_client_class:
+        mock_client_instance = MagicMock()
+        mock_mongo_client_class.return_value = mock_client_instance
+        yield mock_client_instance
 
 
 @pytest.fixture
@@ -63,15 +79,11 @@ async def test_precheckout_handler_error(mock_update_precheckout, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_libs.payment.get_user_info")
-@patch("telegram_libs.payment.add_subscription_payment")
 @patch("telegram_libs.payment.datetime")
 @patch("telegram_libs.payment.BotLogger")
 async def test_successful_payment_valid_plan(
     MockBotLogger,
     mock_datetime,
-    mock_add_subscription_payment,
-    mock_get_user_info,
     mock_update_successful_payment,
     mock_context,
     mock_mongo_manager,
@@ -80,8 +92,8 @@ async def test_successful_payment_valid_plan(
     mock_bot_logger = MockBotLogger.return_value
     mock_context.bot.name = "TestBot"
 
-    # Mock get_user_info
-    mock_get_user_info.return_value = {"user_id": 123, "lang": "en"}
+    # Mock get_user_info on the instance
+    mock_mongo_manager.get_user_info.return_value = {"user_id": 123, "lang": "en"}
 
     # Mock datetime.now() for consistent testing
     fixed_now = datetime(2024, 1, 1, 10, 0, 0)
@@ -95,8 +107,8 @@ async def test_successful_payment_valid_plan(
     )
 
     # Assertions
-    mock_get_user_info.assert_called_once_with(
-        mock_update_successful_payment, mock_mongo_manager
+    mock_mongo_manager.get_user_info.assert_called_once_with(
+        mock_update_successful_payment
     )
     mock_mongo_manager.add_order.assert_called_once_with(
         123,
@@ -110,7 +122,7 @@ async def test_successful_payment_valid_plan(
     )
 
     expected_expiration_date = fixed_now + timedelta(days=30)
-    mock_add_subscription_payment.assert_called_once_with(
+    mock_mongo_manager.add_subscription_payment.assert_called_once_with(
         123,
         {
             "order_id": "test_charge_id",
@@ -121,7 +133,7 @@ async def test_successful_payment_valid_plan(
             "expiration_date": expected_expiration_date.isoformat(),
             "plan": "1month_sub",
             "duration_days": 30,
-        },
+        }
     )
 
     mock_update_successful_payment.message.reply_text.assert_called_once_with(
@@ -143,13 +155,11 @@ async def test_successful_payment_valid_plan(
 
 
 @pytest.mark.asyncio
-@patch("telegram_libs.payment.get_user_info")
 @patch("telegram_libs.payment.t")
 @patch("telegram_libs.payment.BotLogger")
 async def test_successful_payment_invalid_plan(
     MockBotLogger,
     mock_t,
-    mock_get_user_info,
     mock_update_successful_payment,
     mock_context,
     mock_mongo_manager,
@@ -158,8 +168,8 @@ async def test_successful_payment_invalid_plan(
     mock_bot_logger = MockBotLogger.return_value
     mock_context.bot.name = "TestBot"
 
-    # Mock get_user_info
-    mock_get_user_info.return_value = {"user_id": 123, "lang": "en"}
+    # Mock get_user_info on the instance
+    mock_mongo_manager.get_user_info.return_value = {"user_id": 123, "lang": "en"}
 
     # Set an invalid invoice_payload
     mock_update_successful_payment.message.successful_payment.invoice_payload = (
@@ -171,8 +181,8 @@ async def test_successful_payment_invalid_plan(
     )
 
     # Assertions
-    mock_get_user_info.assert_called_once_with(
-        mock_update_successful_payment, mock_mongo_manager
+    mock_mongo_manager.get_user_info.assert_called_once_with(
+        mock_update_successful_payment
     )
     mock_update_successful_payment.message.reply_text.assert_called_once_with(
         mock_t("subscription.payment_issue", "en", common=True)
@@ -190,5 +200,4 @@ async def test_successful_payment_invalid_plan(
     )
 
     # Ensure add_subscription_payment was not called for invalid plan
-    with patch("telegram_libs.payment.add_subscription_payment") as mock_add_subscription_payment:
-        mock_add_subscription_payment.assert_not_called() 
+    mock_mongo_manager.add_subscription_payment.assert_not_called() 

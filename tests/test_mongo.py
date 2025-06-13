@@ -13,26 +13,28 @@ from telegram_libs.constants import DEBUG
 def mock_mongo_collections():
     mock_users_collection = MagicMock()
     mock_payments_collection = MagicMock()
+    mock_subscription_collection = MagicMock()
     mock_db = MagicMock()
     mock_db.__getitem__.side_effect = lambda key: {
         "users_test": mock_users_collection,
         "users": mock_users_collection,
         "order_test": mock_payments_collection,
         "order": mock_payments_collection,
+        "subscriptions": mock_subscription_collection,
     }[key]
     mock_client = MagicMock()
     mock_client.__getitem__.return_value = mock_db
-    return mock_client, mock_users_collection, mock_payments_collection
+    return mock_client, mock_users_collection, mock_payments_collection, mock_subscription_collection
 
 @pytest.fixture
 def mongo_manager(mock_mongo_collections):
-    mock_client, _, _ = mock_mongo_collections
+    mock_client, _, _, mock_subscription_collection = mock_mongo_collections
     return MongoManager(mongo_database_name="test_db", client=mock_client, user_schema={"location": None, "recommended": []})
 
 
 class TestMongoManager:
     def test_init(self, mongo_manager, mock_mongo_collections):
-        mock_client, mock_users_collection, mock_payments_collection = mock_mongo_collections
+        mock_client, mock_users_collection, mock_payments_collection, mock_subscription_collection = mock_mongo_collections
         
         assert mongo_manager.client == mock_client
         assert mongo_manager.db == mock_client.__getitem__.return_value
@@ -40,9 +42,11 @@ class TestMongoManager:
         if DEBUG:
             assert mongo_manager.users_collection == mock_users_collection
             assert mongo_manager.payments_collection == mock_payments_collection
+            assert mongo_manager.subscription_collection == mock_subscription_collection
         else:
             assert mongo_manager.users_collection == mock_users_collection
             assert mongo_manager.payments_collection == mock_payments_collection
+            assert mongo_manager.subscription_collection == mock_subscription_collection
             
         assert mongo_manager.user_schema == {"user_id": None, "location": None, "recommended": []}
 
