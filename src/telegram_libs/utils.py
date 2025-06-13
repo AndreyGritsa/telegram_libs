@@ -112,7 +112,10 @@ class RateLimitManager:
             lang = self.mongo_manager.get_user_info(update).get("lang")
             message = t("rate_limit.exceeded", lang, common=True)
             await update.message.reply_text(message)
-            await get_subscription_keyboard(update, lang)
+            reply_markup = get_subscription_keyboard(update, lang)
+            await update.message.reply_text(
+                t("subscription.choose_plan", lang, common=True), reply_markup=reply_markup
+            )
             return False
         return True
 
