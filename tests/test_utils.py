@@ -16,6 +16,7 @@ from telegram_libs.constants import BOTS_AMOUNT, BOTS
 from telegram_libs.support import handle_support_command, _handle_user_response, SUPPORT_WAITING
 from telegram_libs.logger import BotLogger
 from telegram_libs.error import error_handler
+from telegram.ext import ContextTypes
 
 @pytest.fixture
 def mock_update():
@@ -260,6 +261,11 @@ class TestRateLimitManager:
         return manager
 
     @pytest.fixture
+    def mock_context(self):
+        context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
+        return context
+
+    @pytest.fixture
     def rate_limit_manager(self, mock_mongo_manager):
         return RateLimitManager(mongo_manager=mock_mongo_manager, rate_limit=3)
 
@@ -423,3 +429,33 @@ class TestRateLimitManager:
         mock_mongo_manager.check_subscription_status.assert_called_once_with(user_id)
         mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
         mock_mongo_manager.update_user_data.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_check_limit_with_response_within_limit(self, mock_update, mock_context, rate_limit_manager, mock_mongo_manager):
+        user_id = mock_update.effective_user.id
+        # Mock check_and_increment to return True (within limit or premium)
+        with patch.object(rate_limit_manager, "check_and_increment", return_value=True) as mock_check_and_increment:
+            await rate_limit_manager.check_limit_with_response(mock_update, mock_context, user_id)
+
+            mock_check_and_increment.assert_called_once_with(user_id)
+            mock_update.message.reply_text.assert_not_called()
+            # Ensure get_subscription_keyboard was not called
+            with patch("telegram_libs.utils.get_subscription_keyboard") as mock_get_subscription_keyboard:
+                mock_get_subscription_keyboard.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_check_limit_with_response_exceeded_limit(self, mock_update, mock_context, rate_limit_manager, mock_mongo_manager):
+        user_id = mock_update.effective_user.id
+        lang_code = "en"
+        # Mock check_and_increment to return False (exceeded limit and not premium)
+        with patch.object(rate_limit_manager, "check_and_increment", return_value=False) as mock_check_and_increment, \
+             patch("telegram_libs.utils.get_subscription_keyboard") as mock_get_subscription_keyboard:
+            
+            mock_mongo_manager.get_user_info.return_value = {"lang": lang_code}
+
+            await rate_limit_manager.check_limit_with_response(mock_update, mock_context, user_id)
+
+            mock_check_and_increment.assert_called_once_with(user_id)
+            mock_mongo_manager.get_user_info.assert_called_once_with(user_id)
+            mock_update.message.reply_text.assert_called_once_with(t("rate_limit.exceeded", lang_code, common=True))
+            mock_get_subscription_keyboard.assert_called_once_with(mock_update, lang_code)
