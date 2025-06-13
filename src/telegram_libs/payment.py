@@ -3,8 +3,6 @@ from logging import getLogger
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram_libs.translation import t
-from telegram_libs.subscription import add_subscription_payment
-from telegram_libs.utils import get_user_info
 from telegram_libs.mongo import MongoManager
 from telegram_libs.logger import BotLogger
 
@@ -36,7 +34,7 @@ async def precheckout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, mongo_manager: MongoManager, bot_logger: BotLogger) -> None:
     """Handle successful payments"""
-    user_info = get_user_info(update, mongo_manager)
+    user_info = mongo_manager.get_user_info(update)
     user_id = user_info["user_id"]
     lang = user_info["lang"]
     payment_info = update.message.successful_payment
@@ -72,7 +70,7 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE,
     current_time = datetime.now()
 
     # Add subscription payment to shared subscription database
-    add_subscription_payment(
+    mongo_manager.add_subscription_payment(
         user_id,
         {
             "order_id": payment_info.provider_payment_charge_id,

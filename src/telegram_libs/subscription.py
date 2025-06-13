@@ -1,62 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from telegram import Update, LabeledPrice, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
-from telegram_libs.constants import SUBSCRIPTION_DB_NAME, DEBUG, BOTS_AMOUNT
+from telegram_libs.constants import BOTS_AMOUNT, DEBUG
 from telegram_libs.mongo import MongoManager
-from telegram_libs.utils import get_user_info
 from telegram_libs.translation import t
 from telegram_libs.logger import BotLogger
-
-
-# Define the subscription database and collection
-mongo_manager_instance = MongoManager(mongo_database_name=SUBSCRIPTION_DB_NAME)
-subscription_collection = (
-    mongo_manager_instance.client[SUBSCRIPTION_DB_NAME]["subscriptions"]
-    if not DEBUG
-    else mongo_manager_instance.client[SUBSCRIPTION_DB_NAME]["subscriptions_test"]
-)
-
-
-def get_subscription(user_id: int) -> dict:
-    """Get user's subscription data from the shared subscription database."""
-    subscription = subscription_collection.find_one({"user_id": user_id})
-    if not subscription:
-        return {"user_id": user_id, "is_premium": False}
-    return subscription
-
-
-def update_subscription(user_id: int, updates: dict) -> None:
-    """Update user's subscription data in the shared subscription database."""
-    subscription_collection.update_one(
-        {"user_id": user_id}, {"$set": updates}, upsert=True
-    )
-
-
-def add_subscription_payment(user_id: int, payment_data: dict) -> None:
-    """Add a subscription payment record."""
-    subscription_collection.update_one(
-        {"user_id": user_id},
-        {
-            "$push": {"payments": payment_data},
-            "$set": {
-                "is_premium": True,
-                "premium_expiration": payment_data["expiration_date"],
-                "last_payment": payment_data["date"],
-            },
-        },
-        upsert=True,
-    )
-
-
-def check_subscription_status(user_id: int) -> bool:
-    """Check if user has an active subscription."""
-    subscription = get_subscription(user_id)
-
-    if not subscription.get("is_premium"):
-        return False
-
-    expiration = datetime.fromisoformat(subscription["premium_expiration"])
-    return expiration > datetime.now()
 
 
 async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboardMarkup:
@@ -149,7 +97,7 @@ async def subscribe_command(
     update: Update, context: ContextTypes.DEFAULT_TYPE, mongo_manager: MongoManager, bot_logger: BotLogger
 ) -> None:
     """Show subscription options"""
-    user_info = get_user_info(update, mongo_manager)
+    user_info = mongo_manager.get_user_info(update)
     user_id = user_info["user_id"]
     lang = user_info["lang"]
     bot_name = context.bot.name
@@ -166,11 +114,11 @@ async def check_subscription_command(
     update: Update, context: ContextTypes.DEFAULT_TYPE, mongo_manager: MongoManager
 ):
     """Check user's subscription status"""
-    user_info = get_user_info(update, mongo_manager)
+    user_info = mongo_manager.get_user_info(update)
     user_id = user_info["user_id"]
     lang = user_info["lang"]
 
-    subscription = get_subscription(user_id)
+    subscription = mongo_manager.get_subscription(user_id)
     if subscription.get("is_premium"):
         expiration = datetime.fromisoformat(subscription["premium_expiration"])
         remaining = (expiration - datetime.now()).days
@@ -183,7 +131,7 @@ async def check_subscription_command(
                 )
             )
         else:
-            update_subscription(user_id, {"is_premium": False})
+            mongo_manager.update_subscription(user_id, {"is_premium": False})
             await update.message.reply_text(t("subscription.expired", lang))
     else:
         await update.message.reply_text(t("subscription.none", lang))

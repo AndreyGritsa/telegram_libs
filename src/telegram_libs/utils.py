@@ -1,4 +1,5 @@
 from logging import basicConfig, getLogger, INFO
+from datetime import datetime
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -9,6 +10,7 @@ from telegram_libs.constants import BOTS, BOTS_AMOUNT
 from telegram_libs.translation import t
 from telegram_libs.mongo import MongoManager
 from telegram_libs.logger import BotLogger
+
 
 
 basicConfig(
@@ -59,16 +61,49 @@ async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_T
     await update.message.reply_text(message, disable_web_page_preview=True, parse_mode='HTML')
     
     
-def get_user_info(update: Update, mongo_manager: MongoManager) -> dict:
-    """Get user information from the update object."""
-    user = update.effective_user
-    user_data = mongo_manager.get_user_data(user.id)
+class RateLimitManager:
+    """Rate limit manager to handle user rate limits."""
     
-    return {
-        "user_id": user.id,
-        "username": user.username,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "lang": user_data.get("language", "en"),
-        **user_data,
-    }
+    def __init__(self, mongo_manager: MongoManager, rate_limit: int = 5):
+        self.mongo_manager = mongo_manager
+        self.rate_limit = rate_limit
+
+    def check_limit(self, user_id: int) -> bool:
+        """Check if user has exceeded the daily rate limit."""
+        # Premium users have no limits
+        if self.mongo_manager.check_subscription_status(user_id):
+            return True
+
+        # Get today's date and reset time to midnight
+        today = datetime.now().date()
+
+        # If last action date is not today, reset the counter
+        user_data = self.mongo_manager.get_user_data(user_id)
+        last_action_date_str = user_data.get("last_action_date")
+        if last_action_date_str:
+            last_action_date = datetime.fromisoformat(last_action_date_str).date()
+            if last_action_date != today:
+                self.mongo_manager.update_user_data(
+                    user_id,
+                    {
+                        "actions_today": 0,
+                        "last_action_date": datetime.now().isoformat(),
+                    },
+                )
+                return True
+
+        # Check if user has exceeded the limit
+        actions_today = user_data.get("actions_today", 0)
+        if actions_today >= self.rate_limit:
+            return False
+
+        return True
+
+    def increment_action_count(self, user_id: int) -> None:
+        """Increment the daily action count for the user."""
+        user_data = self.mongo_manager.get_user_data(user_id)
+        current_actions = user_data.get("actions_today", 0)
+        self.mongo_manager.update_user_data(
+            user_id,
+            {"actions_today": current_actions + 1, "last_action_date": datetime.now().isoformat()},
+        )
