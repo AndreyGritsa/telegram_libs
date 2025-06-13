@@ -14,5 +14,8 @@
   "support": {
     "message": "Write down any questions, issues or suggestions you have, and we will resolve them as soon as possible 👇 ",
     "response": "Thank you! Our support team will contact you soon."
+  },
+  "rate_limit": {
+    "exceeded": "You have exceeded the free rate limit for today. Please try again tomorrow."
   }
 }

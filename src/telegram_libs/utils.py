@@ -105,6 +105,14 @@ class RateLimitManager:
             self.increment_action_count(user_id, user_data)
             return True
         return False
+    
+    async def check_limit_with_response(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int) -> None:
+        """Check if user can perform an action and handle the response."""
+        if not self.check_and_increment(user_id):
+            lang = self.mongo_manager.get_user_info(user_id).get("lang")
+            message = t("rate_limit.exceeded", lang, common=True)
+            await update.message.reply_text(message)
+            await get_subscription_keyboard(update, lang)
 
     def increment_action_count(self, user_id: int, user_data: dict = None) -> None:
         """Increment the daily action count for the user."""
