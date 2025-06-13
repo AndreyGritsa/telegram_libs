@@ -68,12 +68,8 @@ class RateLimitManager:
         self.mongo_manager = mongo_manager
         self.rate_limit = rate_limit
 
-    def check_limit(self, user_id: int) -> bool:
+    def check_limit(self, user_id: int) -> tuple[bool, dict]:
         """Check if user has exceeded the daily rate limit."""
-        # Premium users have no limits
-        if self.mongo_manager.check_subscription_status(user_id):
-            return True
-
         # Get today's date and reset time to midnight
         today = datetime.now().date()
 
@@ -90,18 +86,30 @@ class RateLimitManager:
                         "last_action_date": datetime.now().isoformat(),
                     },
                 )
-                return True
+                return True, user_data
 
         # Check if user has exceeded the limit
         actions_today = user_data.get("actions_today", 0)
         if actions_today >= self.rate_limit:
-            return False
+            return False, user_data
 
-        return True
+        return True, user_data
+    
+    def check_and_increment(self, user_id: int) -> bool:
+        """Check if user can perform an action and increment the count if allowed."""
+        if self.mongo_manager.check_subscription_status(user_id):
+            return True
 
-    def increment_action_count(self, user_id: int) -> None:
+        can_perform, user_data = self.check_limit(user_id)
+        if can_perform:
+            self.increment_action_count(user_id, user_data)
+            return True
+        return False
+
+    def increment_action_count(self, user_id: int, user_data: dict = None) -> None:
         """Increment the daily action count for the user."""
-        user_data = self.mongo_manager.get_user_data(user_id)
+        if user_data is None:
+            user_data = self.mongo_manager.get_user_data(user_id)
         current_actions = user_data.get("actions_today", 0)
         self.mongo_manager.update_user_data(
             user_id,
