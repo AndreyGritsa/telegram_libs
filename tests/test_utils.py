@@ -5,23 +5,25 @@ os.environ["BOTS_AMOUNT"] = "5"
 os.environ["MONGO_URI"] = "mongodb://localhost:27017"
 os.environ["SUBSCRIPTION_DB_NAME"] = "subscription_db"
 
+from datetime import datetime
+from functools import partial
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from telegram import Update, Message
 from telegram.ext import Application
-from telegram_libs.utils import get_subscription_keyboard, t
+from telegram_libs.utils import get_subscription_keyboard, t, RateLimitManager
 from telegram_libs.constants import BOTS_AMOUNT, BOTS
-from datetime import datetime
 from telegram_libs.support import handle_support_command, _handle_user_response, SUPPORT_WAITING
 from telegram_libs.logger import BotLogger
 from telegram_libs.error import error_handler
-from functools import partial
 
 @pytest.fixture
 def mock_update():
     update = MagicMock(spec=Update)
     update.message = MagicMock(spec=Message)
     update.message.reply_text = AsyncMock()
+    update.effective_user.id = 123
+    update.effective_user.language_code = 'en'
     return update
 
 @pytest.mark.asyncio
@@ -248,3 +250,122 @@ async def test_support_filter_no_key(mock_update):
     result = support_filter(mock_update, mock_context)
     
     assert result is False
+
+class TestRateLimitManager:
+    @pytest.fixture
+    def mock_mongo_manager(self):
+        manager = MagicMock()
+        manager.get_user_data.return_value = {}
+        manager.check_subscription_status.return_value = False # Default for non-premium tests
+        return manager
+
+    @pytest.fixture
+    def rate_limit_manager(self, mock_mongo_manager):
+        return RateLimitManager(mongo_manager=mock_mongo_manager, rate_limit=3)
+
+    def test_init(self, mock_mongo_manager):
+        manager = RateLimitManager(mock_mongo_manager, rate_limit=5)
+        assert manager.mongo_manager == mock_mongo_manager
+        assert manager.rate_limit == 5
+
+    def test_check_limit_premium_user(self, rate_limit_manager, mock_mongo_manager):
+        mock_mongo_manager.check_subscription_status.return_value = True
+        assert rate_limit_manager.check_limit(123) is True
+        mock_mongo_manager.check_subscription_status.assert_called_once_with(123)
+        
+        # Ensure no other mongo_manager methods are called for premium users
+        mock_mongo_manager.get_user_data.assert_not_called()
+        mock_mongo_manager.update_user_data.assert_not_called()
+
+    @patch("telegram_libs.utils.datetime")
+    def test_check_limit_first_action_today(self, mock_datetime, rate_limit_manager, mock_mongo_manager):
+        user_id = 123
+        
+        mock_datetime.now.return_value = datetime(2024, 1, 1, 10, 0, 0) # Mock datetime.now() to return a specific datetime
+        mock_datetime.fromisoformat.side_effect = lambda x: datetime.fromisoformat(x) # Allow real fromisoformat to be called
+
+        # Mock user data as if no previous action date
+        mock_mongo_manager.get_user_data.return_value = {"actions_today": 0, "last_action_date": None}
+        
+        assert rate_limit_manager.check_limit(user_id) is True
+        mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
+        mock_mongo_manager.update_user_data.assert_not_called()
+
+    @patch("telegram_libs.utils.datetime")
+    def test_check_limit_within_limit_same_day(self, mock_datetime, rate_limit_manager, mock_mongo_manager):
+        user_id = 123
+        
+        # Mock datetime.now() and datetime.fromisoformat() to return datetimes on the same day
+        mock_datetime.now.return_value = datetime(2024, 1, 1, 10, 0, 0)
+        mock_datetime.fromisoformat.side_effect = lambda x: datetime.fromisoformat(x) # Allow real fromisoformat to be called
+
+        mock_user_data = {
+            "last_action_date": "2024-01-01T09:00:00", # Should be the same date as mock_now
+            "actions_today": 2  # Within limit of 3
+        }
+        mock_mongo_manager.get_user_data.return_value = mock_user_data
+        
+        assert rate_limit_manager.check_limit(user_id) is True
+        mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
+        mock_mongo_manager.update_user_data.assert_not_called()
+
+    @patch("telegram_libs.utils.datetime")
+    def test_check_limit_new_day_resets_count(self, mock_datetime, rate_limit_manager, mock_mongo_manager):
+        user_id = 123
+        
+        # Mock datetime.now() to be a new day, and datetime.fromisoformat() to be the previous day
+        mock_datetime.now.return_value = datetime(2024, 1, 2, 10, 0, 0)
+        mock_datetime.fromisoformat.side_effect = lambda x: datetime.fromisoformat(x) # Allow real fromisoformat to be called
+
+        mock_user_data = {
+            "last_action_date": "2024-01-01T15:00:00",
+            "actions_today": 5  # Exceeded yesterday
+        }
+        mock_mongo_manager.get_user_data.return_value = mock_user_data
+        
+        assert rate_limit_manager.check_limit(user_id) is True
+        mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
+        mock_mongo_manager.update_user_data.assert_called_once_with(
+            user_id,
+            {
+                "actions_today": 0,
+                "last_action_date": datetime(2024, 1, 2, 10, 0, 0).isoformat(),
+            },
+        )
+
+    @patch("telegram_libs.utils.datetime")
+    def test_check_limit_exceeded(self, mock_datetime, rate_limit_manager, mock_mongo_manager):
+        user_id = 123
+
+        # Mock datetime.now() and datetime.fromisoformat() to be the same day
+        mock_datetime.now.return_value = datetime(2024, 1, 1, 10, 0, 0)
+        mock_datetime.fromisoformat.side_effect = lambda x: datetime.fromisoformat(x) # Allow real fromisoformat to be called
+
+        mock_user_data = {
+            "last_action_date": "2024-01-01T09:00:00",
+            "actions_today": 3  # At the limit of 3
+        }
+        mock_mongo_manager.get_user_data.return_value = mock_user_data
+
+        assert rate_limit_manager.check_limit(user_id) is False
+        mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
+        mock_mongo_manager.update_user_data.assert_not_called()
+
+    @patch("telegram_libs.utils.datetime")
+    def test_increment_action_count(self, mock_datetime, rate_limit_manager, mock_mongo_manager):
+        user_id = 123
+        initial_actions = 2
+        mock_user_data = {"actions_today": initial_actions, "last_action_date": "2024-01-01T09:00:00"}
+        mock_mongo_manager.get_user_data.return_value = mock_user_data
+        
+        fixed_now = datetime(2024, 1, 1, 10, 0, 0)
+        mock_datetime.now.return_value = fixed_now
+        # mock_datetime.isoformat.side_effect = fixed_now.isoformat # Not needed if datetime.now() returns real datetime object
+
+        rate_limit_manager.increment_action_count(user_id)
+        
+        mock_mongo_manager.get_user_data.assert_called_once_with(user_id)
+        mock_mongo_manager.update_user_data.assert_called_once_with(
+            user_id,
+            {"actions_today": initial_actions + 1, "last_action_date": fixed_now.isoformat()},
+        )
