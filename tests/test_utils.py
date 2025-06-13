@@ -457,7 +457,7 @@ class TestRateLimitManager:
             result = await rate_limit_manager.check_limit_with_response(mock_update, mock_context, user_id)
 
             mock_check_and_increment.assert_called_once_with(user_id)
-            mock_mongo_manager.get_user_info.assert_called_once_with(user_id)
+            mock_mongo_manager.get_user_info.assert_called_once_with(mock_update)
             mock_update.message.reply_text.assert_called_once_with(t("rate_limit.exceeded", lang_code, common=True))
             mock_get_subscription_keyboard.assert_called_once_with(mock_update, lang_code)
             assert result is False
