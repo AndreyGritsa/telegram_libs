@@ -8,7 +8,7 @@ os.environ["SUBSCRIPTION_DB_NAME"] = "subscription_db"
 from datetime import datetime
 from functools import partial
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch, call, ANY
 from telegram import Update, Message
 from telegram.ext import Application
 from telegram_libs.utils import get_subscription_keyboard, t, RateLimitManager
@@ -458,6 +458,11 @@ class TestRateLimitManager:
 
             mock_check_and_increment.assert_called_once_with(user_id)
             mock_mongo_manager.get_user_info.assert_called_once_with(mock_update)
-            mock_update.message.reply_text.assert_called_once_with(t("rate_limit.exceeded", lang_code, common=True))
+
+            expected_calls = [
+                call(t("rate_limit.exceeded", lang_code, common=True)),
+                call(t("subscription.choose_plan", lang_code, common=True), reply_markup=ANY)
+            ]
+            mock_update.message.reply_text.assert_has_calls(expected_calls)
             mock_get_subscription_keyboard.assert_called_once_with(mock_update, lang_code)
             assert result is False
