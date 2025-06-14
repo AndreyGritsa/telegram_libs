@@ -38,19 +38,19 @@ async def test_get_subscription_keyboard_layout(mock_update):
     )
     
     # Check keyboard layout
-    assert len(keyboard) == 2  # Two rows
-    assert len(keyboard[0]) == 2  # First row has 2 buttons
-    assert len(keyboard[1]) == 1  # Second row has 1 button
+    assert len(keyboard.inline_keyboard) == 2  # Two rows
+    assert len(keyboard.inline_keyboard[0]) == 2  # First row has 2 buttons
+    assert len(keyboard.inline_keyboard[1]) == 1  # Second row has 1 button
     
     # Check button texts and callback data
-    assert keyboard[0][0].text == t("subscription.plans.1month", "en", common=True)
-    assert keyboard[0][0].callback_data == "sub_1month"
+    assert keyboard.inline_keyboard[0][0].text == t("subscription.plans.1month", "en", common=True)
+    assert keyboard.inline_keyboard[0][0].callback_data == "sub_1month"
     
-    assert keyboard[0][1].text == t("subscription.plans.3months", "en", common=True)
-    assert keyboard[0][1].callback_data == "sub_3months"
+    assert keyboard.inline_keyboard[0][1].text == t("subscription.plans.3months", "en", common=True)
+    assert keyboard.inline_keyboard[0][1].callback_data == "sub_3months"
     
-    assert keyboard[1][0].text == t("subscription.plans.1year", "en", common=True)
-    assert keyboard[1][0].callback_data == "sub_1year"
+    assert keyboard.inline_keyboard[1][0].text == t("subscription.plans.1year", "en", common=True)
+    assert keyboard.inline_keyboard[1][0].callback_data == "sub_1year"
 
 @pytest.mark.asyncio
 async def test_get_subscription_keyboard_different_language(mock_update):
@@ -63,14 +63,14 @@ async def test_get_subscription_keyboard_different_language(mock_update):
     )
     
     # Check keyboard layout remains the same
-    assert len(keyboard) == 2
-    assert len(keyboard[0]) == 2
-    assert len(keyboard[1]) == 1
+    assert len(keyboard.inline_keyboard) == 2
+    assert len(keyboard.inline_keyboard[0]) == 2
+    assert len(keyboard.inline_keyboard[1]) == 1
     
     # Check callback data remains the same regardless of language
-    assert keyboard[0][0].callback_data == "sub_1month"
-    assert keyboard[0][1].callback_data == "sub_3months"
-    assert keyboard[1][0].callback_data == "sub_1year"
+    assert keyboard.inline_keyboard[0][0].callback_data == "sub_1month"
+    assert keyboard.inline_keyboard[0][1].callback_data == "sub_3months"
+    assert keyboard.inline_keyboard[1][0].callback_data == "sub_1year"
 
 @pytest.mark.asyncio
 async def test_more_bots_list_command(mock_update):
