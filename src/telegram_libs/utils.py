@@ -32,7 +32,7 @@ async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboard
     await update.message.reply_text(
         t("subscription.info", lang, common=True).format(BOTS_AMOUNT - 1)
     )
-    return [
+    return InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
                 t("subscription.plans.1month", lang, common=True), callback_data="sub_1month"
@@ -46,7 +46,7 @@ async def get_subscription_keyboard(update: Update, lang: str) -> InlineKeyboard
                 t("subscription.plans.1year", lang, common=True), callback_data="sub_1year"
             ),
         ],
-    ]
+    ])
     
 
 async def more_bots_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE, bot_logger: BotLogger) -> None:
