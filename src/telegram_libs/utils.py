@@ -86,6 +86,8 @@ class RateLimitManager:
                         "last_action_date": datetime.now().isoformat(),
                     },
                 )
+                user_data["actions_today"] = 0
+                user_data["last_action_date"] = datetime.now().isoformat()
                 return True, user_data
 
         # Check if user has exceeded the limit
