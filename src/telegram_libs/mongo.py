@@ -42,24 +42,26 @@ class MongoManager:
             return self.create_user(user_id)
         return user_data
 
+    def increment_usage(self, user_id: int, field: str) -> None:
+        """Increment a usage field for a user."""
+        self.users_collection.update_one(
+            {"user_id": user_id}, {"$inc": {field: 1}}, upsert=True
+        )
+
     def update_user_data(self, user_id: int, updates: dict) -> None:
         """Update user data in the database."""
-        result = self.users_collection.update_one({"user_id": user_id}, {"$set": updates})
-        if result.matched_count == 0:
-            # If no document was matched, create a new user
-            self.create_user(user_id)
-            self.users_collection.update_one({"user_id": user_id}, {"$set": updates})
+        self.users_collection.update_one(
+            {"user_id": user_id}, {"$set": updates}, upsert=True
+        )
 
     def add_order(self, user_id: int, order: dict) -> None:
         """Add an order to the user's data."""
         self.payments_collection.insert_one({"user_id": user_id, **order})
 
-
     def get_orders(self, user_id: int) -> list:
         """Get all orders for a user."""
         orders = self.payments_collection.find({"user_id": user_id})
         return list(orders)
-
 
     def update_order(self, user_id: int, order_id: int, updates: dict) -> None:
         """Update an order for a user."""
@@ -71,7 +73,7 @@ class MongoManager:
         """Get user information from the update object."""
         user = update.effective_user
         user_data = self.get_user_data(user.id)
-        
+
         return {
             "user_id": user.id,
             "username": user.username,
