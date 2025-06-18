@@ -13,6 +13,7 @@ BOTS = {
     "https://t.me/kudapoyti_go_bot": "Recommend Place to Visit",
     "https://t.me/TryOnOutfitGBot": "Try On Outfit",
     "https://t.me/CloneVoiceAIGBot": "Clone Voice, Text to Speech AI",
+    "https://t.me/SocialPosterGBot": "Social Poster",
 }
 
 BOTS_AMOUNT = len(BOTS)
