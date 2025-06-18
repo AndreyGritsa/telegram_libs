@@ -3,7 +3,7 @@ import os
 required_constants = []
 
 MONGO_URI = os.getenv("MONGO_URI")
-SUBSCRIPTION_DB_NAME = os.getenv("SUBSCRIPTION_DB_NAME")
+SUBSCRIPTION_DB_NAME = os.getenv("SUBSCRIPTION_DB_NAME", "subscriptions")
 LOGS_DB_NAME = os.getenv("LOGS_DB_NAME", "logs")
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 BOTS = {
@@ -18,7 +18,6 @@ BOTS = {
 BOTS_AMOUNT = len(BOTS)
 
 required_constants.append(("MONGO_URI", MONGO_URI))
-required_constants.append(("SUBSCRIPTION_DB_NAME", SUBSCRIPTION_DB_NAME))
 
 missing_constants = [name for name, value in required_constants if not value]
 if missing_constants:
