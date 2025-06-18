@@ -107,7 +107,7 @@ class TestMongoManager:
         mongo_manager.update_user_data(user_id, updates)
         
         mongo_manager.users_collection.update_one.assert_called_once_with(
-            {"user_id": user_id}, {"$set": updates}
+            {"user_id": user_id}, {"$set": updates}, upsert=True
         )
         mongo_manager.create_user.assert_not_called()
 
@@ -126,14 +126,12 @@ class TestMongoManager:
         
         mongo_manager.update_user_data(user_id, updates)
         
-        # Assert create_user was called once
-        mock_create_user.assert_called_once_with(user_id)
-        
-        # Assert update_one was called twice: once for the initial update, once after creation
-        assert mongo_manager.users_collection.update_one.call_count == 2
-        mongo_manager.users_collection.update_one.assert_any_call(
-            {"user_id": user_id}, {"$set": updates}
+        # Assert update_one was called with upsert=True
+        mongo_manager.users_collection.update_one.assert_called_with(
+            {"user_id": user_id}, {"$set": updates}, upsert=True
         )
+        # Since upsert=True is used, create_user should not be called
+        mock_create_user.assert_not_called()
 
     def test_add_order(self, mongo_manager):
         user_id = 123

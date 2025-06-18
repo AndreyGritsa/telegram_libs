@@ -18,7 +18,7 @@ def test_required_constants_missing(monkeypatch):
     """Test that ValueError is raised when required constants are missing."""
     # Ensure the environment variables are not set
     monkeypatch.delenv("MONGO_URI", raising=False)
-    monkeypatch.delenv("SUBSCRIPTION_DB_NAME", raising=False)
+    # No need to delete SUBSCRIPTION_DB_NAME since it's not required
     
     # Import after removing environment variables
     import importlib
@@ -30,13 +30,13 @@ def test_required_constants_missing(monkeypatch):
     error_message = str(exc_info.value)
     assert "Required constants are not set:" in error_message
     assert "MONGO_URI" in error_message
-    assert "SUBSCRIPTION_DB_NAME" in error_message
+    # No assertion for SUBSCRIPTION_DB_NAME
 
 def test_required_constants_partial_missing(monkeypatch):
     """Test that ValueError is raised when some required constants are missing."""
     # Set only one environment variable
     monkeypatch.delenv("MONGO_URI", raising=False)
-    monkeypatch.delenv("SUBSCRIPTION_DB_NAME", raising=False)
+    # No need to delete SUBSCRIPTION_DB_NAME since it's not required
     
     # Import after setting/removing environment variables
     import importlib
@@ -48,4 +48,4 @@ def test_required_constants_partial_missing(monkeypatch):
     error_message = str(exc_info.value)
     assert "Required constants are not set:" in error_message
     assert "MONGO_URI" in error_message
-    assert "SUBSCRIPTION_DB_NAME" in error_message 
+    # No assertion for SUBSCRIPTION_DB_NAME 
