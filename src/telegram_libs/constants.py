@@ -8,12 +8,12 @@ LOGS_DB_NAME = os.getenv("LOGS_DB_NAME", "logs")
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 BOTS = {
     "https://t.me/MagMediaBot": "Remove Background",
-    "https://t.me/UpscaleImageGBot": "Upscale Image",
-    "https://t.me/GenerateBackgroundGBot": "Generate Background",
+    "https://t.me/UpscaleImage_GBot": "Upscale Image",
+    "https://t.me/GanarateBackground_GBot": "Generate Background",
     "https://t.me/kudapoyti_go_bot": "Recommend Place to Visit",
-    "https://t.me/TryOnOutfitGBot": "Try On Outfit",
-    "https://t.me/CloneVoiceAIGBot": "Clone Voice, Text to Speech AI",
-    "https://t.me/SocialPosterGBot": "Social Poster",
+    "https://t.me/TryOn_GBot": "Try On Outfit",
+    "https://t.me/CloneVoice_GBot": "Clone Voice, Text to Speech AI",
+    "https://t.me/SocialPoster_GBot": "Social Poster",
 }
 
 BOTS_AMOUNT = len(BOTS)
